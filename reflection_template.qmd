@@ -70,7 +70,7 @@ colleges_clean1 <- colleges |>
          SAT_AVG,
          UGDS,
          TUITIONFEE_IN,
-         TUITIONFEE_OUT
+         TUITIONFEE_OUT,
          CONTROL,
          REGION)
 
@@ -752,12 +752,62 @@ ggplot(
 ```{r}
 #| label: dvs-2-ex-1
 
+# LAB 4: Q7
+ggplot(
+  data = weekly_median_price,
+  aes(
+    x = study_year,
+    y = median_weekly_price, 
+    color = fct_reorder2(region, study_year, median_weekly_price), 
+  )) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
+  facet_wrap(~ age_group, ncol = 3) + 
+  labs(
+    title = "Weekly Median Price for Center Based Childcare ($)",
+    x = "Study Year",
+    y = "",
+    color = "California Region"
+  ) + 
+  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
+  theme_minimal(base_size = 12) + 
+  theme(
+    strip.background = element_rect(
+      fill = "gray",
+    )
+  )
+
 ```
 
 -   I can modify my colors to be accessible to anyone's eyes
 
 ```{r}
 #| label: dvs-2-ex-2
+
+# LAB 4: Q7
+ggplot(
+  data = weekly_median_price,
+  aes(
+    x = study_year,
+    y = median_weekly_price, 
+    color = fct_reorder2(region, study_year, median_weekly_price), 
+  )) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
+  facet_wrap(~ age_group, ncol = 3) + 
+  labs(
+    title = "Weekly Median Price for Center Based Childcare ($)",
+    x = "Study Year",
+    y = "",
+    color = "California Region"
+  ) + 
+  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
+  theme_minimal(base_size = 12) + 
+  theme(
+    strip.background = element_rect(
+      fill = "gray",
+    )
+  )
 
 ```
 
@@ -766,6 +816,19 @@ ggplot(
 ```{r}
 #| label: dvs-2-ex-3
 
+# LAB 2: Q10-15 [REVISED]
+ggplot(data = surveys, 
+      aes(x = species, y = weight)) + 
+      geom_boxplot(outlier.shape = NA) + 
+      geom_jitter(color = "steelblue", alpha = 0.4) + 
+      labs(
+        title = "Boxplots of the Distribution of Rodent Weight By Species in the Portal Project",
+        subtitle = "Data from ecological study near Portal, AZ",
+        x = "Species", 
+        y = "Weight (grams)"
+      ) + 
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ```
 
 -   I can modify the text in my plot to be more readable
@@ -773,12 +836,51 @@ ggplot(
 ```{r}
 #| label: dvs-2-ex-4
 
+# LAB 2: Q10-15 [REVISED]
+# rotates species label -> modifies x axis to prevent label overlap
+ggplot(data = surveys, 
+      aes(x = species, y = weight)) + 
+      geom_boxplot(outlier.shape = NA) + 
+      geom_jitter(color = "steelblue", alpha = 0.4) + 
+      labs(
+        title = "Boxplots of the Distribution of Rodent Weight By Species in the Portal Project",
+        subtitle = "Data from ecological study near Portal, AZ",
+        x = "Species", 
+        y = "Weight (grams)"
+      ) + 
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ```
 
 -   I can reorder my legend to align with the colors in my plot
 
 ```{r}
 #| label: dvs-2-ex-5
+
+# LAB 4: Q7
+ggplot(
+  data = weekly_median_price,
+  aes(
+    x = study_year,
+    y = median_weekly_price, 
+    color = fct_reorder2(region, study_year, median_weekly_price), 
+  )) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
+  facet_wrap(~ age_group, ncol = 3) + 
+  labs(
+    title = "Weekly Median Price for Center Based Childcare ($)",
+    x = "Study Year",
+    y = "",
+    color = "California Region"
+  ) + 
+  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
+  theme_minimal(base_size = 12) + 
+  theme(
+    strip.background = element_rect(
+      fill = "gray",
+    )
+  )
 
 ```
 
@@ -789,12 +891,58 @@ ggplot(
 ```{r}
 #| label: dvs-3-1-ex-1
 
+# CHALLENGE 2
+ggplot(data = surveys, 
+      aes(x = species, y = weight, fill = sex)) + 
+      geom_boxplot(outlier.shape = NA) + 
+      scale_fill_viridis_d(option = "C", begin = 0.2, end = 0.8) +
+      labs(
+        title = "Boxplots of the Distribution of Rodent Weight and Rodent Species", 
+        subtitle = "Sex: <span style='color:#440154;'>Male</span> | <span style='color:#440154;'>Female</span>",
+        x = "Species", 
+        y = "Weight (grams)", 
+        fill = NULL
+      ) + 
+      theme_minimal(base_size = 12) + 
+      theme(
+        legend.position = "none",
+        plot.subtitle = element_markdown(size = 11),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(face = "bold", size = 14)
+      )
+
 ```
 
 -   I can use non-standard colors (Example 2)
 
 ```{r}
 #| label: dvs-3-1-ex-2
+
+# LAB 4: Q7
+ggplot(
+  data = weekly_median_price,
+  aes(
+    x = study_year,
+    y = median_weekly_price, 
+    color = fct_reorder2(region, study_year, median_weekly_price), 
+  )) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
+  facet_wrap(~ age_group, ncol = 3) + 
+  labs(
+    title = "Weekly Median Price for Center Based Childcare ($)",
+    x = "Study Year",
+    y = "",
+    color = "California Region"
+  ) + 
+  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
+  theme_minimal(base_size = 12) + 
+  theme(
+    strip.background = element_rect(
+      fill = "gray",
+    )
+  )
 
 ```
 
@@ -819,12 +967,28 @@ ggplot(
 ```{r}
 #| label: dvs-4-summarize
 
+# LAB 4: Q6
+median_infant_cb <- ca_childcare |>
+  filter(study_year == 2018) |>
+  group_by(region) |>
+  summarize(median_infant_price = median(mc_infant, na.rm = TRUE)) |>
+  arrange(median_infant_price)
+
 ```
 
 -   Example using `across()`
 
 ```{r}
 #| label: dvs-4-across
+
+# LAB 3: Q5
+teacher_evals_clean <- teacher_evals |>
+  rename(sex = gender) |>
+  filter(no_participants >= 10) |>
+  mutate(across(c(course_id, teacher_id), as.character)) |>
+  select(
+    course_id, teacher_id, question_no, no_participants, resp_share, SET_score_avg, percent_failed_cur, academic_degree, seniority, sex
+  )
 
 ```
 
@@ -835,12 +999,49 @@ ggplot(
 ```{r}
 #| label: dvs-5-1
 
+# LAB 4: Q5
+median_income_region <- ca_childcare |>
+  filter(study_year %in% c(2008, 2018)) |>
+  group_by(region, study_year) |>
+  summarize(median_income = median(mhi_2018, na.rm = TRUE)) |>
+  ungroup() |>
+  pivot_wider(
+    names_from = study_year, 
+    values_from = median_income,
+    names_prefix = "Income_"
+  ) |>
+  arrange(desc(Income_2018)) |>
+  rename(
+    Region = region,
+    "2008 Median Income ($)" = Income_2008,
+    "2018 Median Income ($)" = Income_2018
+  )
+
 ```
 
 -   Example 2
 
 ```{r}
 #| label: dvs-5-2
+
+# CHALLENGE 4: Q2
+weeks_in_year <- 52
+
+summary_stats_2018 <- ca_childcare |>
+  filter(study_year == 2018) |> 
+  group_by(region) |> 
+  summarize(
+    median_center_based = median(mc_infant, na.rm = TRUE),
+    median_family_based = median(mfcc_infant, na.rm = TRUE),
+    median_income = median(mhi_2018, na.rm = TRUE)
+  ) |>
+  mutate(
+    price_gap = median_center_based - median_family_based,
+    percentage_gap = (price_gap / median_family_based) * 100,
+    annual_income_percentage_spent_center = ((median_center_based * weeks_in_year) / median_income) * 100,
+    annual_income_percentage_spent_family = ((median_family_based * weeks_in_year) / median_income) * 100 
+  ) |>
+  arrange(desc(percentage_gap))
 
 ```
 
@@ -850,6 +1051,24 @@ ggplot(
 
 ```{r}
 #| label: dvs-6-ex-1
+
+# LAB 4: Q5
+median_income_region <- ca_childcare |>
+  filter(study_year %in% c(2008, 2018)) |>
+  group_by(region, study_year) |>
+  summarize(median_income = median(mhi_2018, na.rm = TRUE)) |>
+  ungroup() |>
+  pivot_wider(
+    names_from = study_year, 
+    values_from = median_income,
+    names_prefix = "Income_"
+  ) |>
+  arrange(desc(Income_2018)) |>
+  rename(
+    Region = region,
+    "2008 Median Income ($)" = Income_2008,
+    "2018 Median Income ($)" = Income_2018
+  )
 
 ```
 
@@ -874,12 +1093,52 @@ ggplot(
 ```{r}
 #| label: dvs-7-ex-1
 
+# CHALLENGE 4: Q3
+ggplot(
+  data = plot_summary_stats_2018, 
+  aes(
+    x = reorder(region, median_income),
+    y = median_weekly_cost, 
+    fill = setting_type
+  )
+) + 
+  geom_col(position = "dodge") +
+  coord_flip() + 
+  scale_fill_manual(values = c(
+    "Center Based" = "#2b8cbe",
+    "Family Based" = "#41ae76"
+  )) + 
+  labs(
+    title = "2018 Median Weekly Childcare Costs for Infants by Region and Setting",
+    x = "California Region (ordered by median household income)", 
+    y = "Median Weekly Cost", 
+    fill = "Setting Type"
+  )
+
 ```
 
 -   I can modify the layout of my table to be more readable (e.g., `pivot_longer()` or `pivot_wider()`)
 
 ```{r}
 #| label: dvs-7-ex-2
+
+# LAB 4: Q5
+median_income_region <- ca_childcare |>
+  filter(study_year %in% c(2008, 2018)) |>
+  group_by(region, study_year) |>
+  summarize(median_income = median(mhi_2018, na.rm = TRUE)) |>
+  ungroup() |>
+  pivot_wider(
+    names_from = study_year, 
+    values_from = median_income,
+    names_prefix = "Income_"
+  ) |>
+  arrange(desc(Income_2018)) |>
+  rename(
+    Region = region,
+    "2008 Median Income ($)" = Income_2008,
+    "2018 Median Income ($)" = Income_2018
+  )
 
 ```
 
@@ -892,12 +1151,36 @@ ggplot(
 ```{r}
 #| label: pe-1-one-call
 
+# LAB 4: Q7
+weekly_median_price <- ca_childcare |>
+  select(region, study_year, mc_infant, mc_toddler, mc_preschool) |>
+  pivot_longer(
+    cols = c(mc_infant, mc_toddler, mc_preschool),
+    names_to = "age_group", 
+    values_to = "median_weekly_price"
+  ) |>
+  mutate(age_group = recode(
+      age_group,
+      mc_infant = "Infant", 
+      mc_toddler = "Toddler", 
+      mc_preschool = "Preschool"),
+    age_group = fct_relevel(age_group, "Infant", "Toddler", "Preschool"))
+
 ```
 
 -   using `across()`
 
 ```{r}
 #| label: pe-1-across
+
+# LAB 3: Q5
+teacher_evals_clean <- teacher_evals |>
+  rename(sex = gender) |>
+  filter(no_participants >= 10) |>
+  mutate(across(c(course_id, teacher_id), as.character)) |>
+  select(
+    course_id, teacher_id, question_no, no_participants, resp_share, SET_score_avg, percent_failed_cur, academic_degree, seniority, sex
+  )
 
 ```
 
@@ -961,12 +1244,75 @@ ggplot(
 ```{r}
 #| label: pe-4-1
 
+# LAB 5: Inspect Gold Members and Match License
+get_fit_now_member |>
+  filter(
+    membership_status == "gold",
+    str_detect(
+      id,
+      "^48Z"
+    )
+  ) |>
+  inner_join(
+    person,
+    by = c("person_id" = "id")
+  ) |>
+  inner_join(
+    drivers_license,
+    by = c("license_id" = "id")
+  ) |>
+  filter(
+    str_detect(
+      plate_number, 
+      "H42W"
+    )
+  )
+
 ```
 
 -   I can connect a data wrangling pipeline into a `ggplot()`
 
 ```{r}
 #| label: pe-4-2
+
+# LAB 4: Q7 [REVISED]
+#| fig-width: 13
+#| fig-height: 5
+ca_childcare |>
+  select(region, study_year, mc_infant, mc_toddler, mc_preschool) |>
+  pivot_longer(
+    cols = c(mc_infant, mc_toddler, mc_preschool),
+    names_to = "age_group", 
+    values_to = "median_weekly_price"
+  ) |>
+  mutate(age_group = recode(
+      age_group,
+      mc_infant = "Infant", 
+      mc_toddler = "Toddler", 
+      mc_preschool = "Preschool"),
+    age_group = fct_relevel(age_group, "Infant", "Toddler", "Preschool")) |>
+  ggplot(
+    aes(
+      x = study_year,
+      y = median_weekly_price, 
+      color = fct_reorder2(region, study_year, median_weekly_price), 
+    )) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
+  facet_wrap(~ age_group, ncol = 3) + 
+  labs(
+    title = "Weekly Median Price for Center Based Childcare ($)",
+    x = "Study Year",
+    y = "",
+    color = "California Region"
+  ) + 
+  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
+  theme_minimal(base_size = 12) + 
+  theme(
+    strip.background = element_rect(
+      fill = "gray",
+    )
+  )
 
 ```
 
@@ -995,6 +1341,9 @@ ggplot(
 ```{r}
 #| label: dsm-2-1
 
+# LAB 2: Q17
+aov(weight ~ species, data = surveys) |> summary()
+
 ```
 
 -   Example 2
@@ -1002,12 +1351,24 @@ ggplot(
 ```{r}
 #| label: dsm-2-2
 
+# LAB 1: Q10-13
+t.test(len ~ supp,
+      data = ToothGrowth, 
+      var.equal = FALSE, 
+      alternative = "two.sided")
+
 ```
 
 -   Example 3
 
 ```{r}
 #| label: dsm-2-3
+
+# CHALLENGE 3: Q3
+chi_square_test <- chisq.test(
+  table(teacher_evals_compare$SET_level, 
+  teacher_evals_compare$sen_level)
+)
 
 ```
 
