@@ -23,12 +23,18 @@ execute:
 ```{r}
 #| label: wd-1-csv-1
 
+# LAB 2: Q1
+surveys <-read_csv(here("week-2", "surveys.csv"), show_col_types = FALSE)
+
 ```
 
 -   `csv` Example 2
 
 ```{r}
 #| label: wd-1-csv-2
+
+# PA-3: Data Download & Package Loading
+colleges <- read_csv("https://www.dropbox.com/s/bt5hvctdevhbq6j/colleges.csv?dl=1")
 
 ```
 
@@ -37,6 +43,14 @@ execute:
 ```{r}
 #| label: wd-1-xlsx
 
+# PA-4: Data Import
+military <- read_xlsx("gov_spending_per_capita.xlsx",
+                      sheet = "Share of Govt. spending",
+                      skip  = 7,
+                      n_max = 191,
+                      na = c(". .", "xxx", "..")
+                      )
+  
 ```
 
 **WD-2: I can select necessary columns from a dataset.**
@@ -46,6 +60,20 @@ execute:
 ```{r}
 #| label: wd-2-ex-1
 
+# PA-3: Data Cleaning
+colleges_clean1 <- colleges |>
+  select(INSTNM,
+         CITY,
+         STABBR,
+         ZIP,
+         ADM_RATE,
+         SAT_AVG,
+         UGDS,
+         TUITIONFEE_IN,
+         TUITIONFEE_OUT
+         CONTROL,
+         REGION)
+
 ```
 
 -   Example removing specified columns
@@ -53,12 +81,45 @@ execute:
 ```{r}
 #| label: wd-2-ex-2
 
+# CHALLENGE 4: O3 [REVISED]
+plot_summary_stats_2018 <- summary_stats_2018 |>
+  select(-price_gap, -percentage_gap,
+         -annual_income_percentage_spent_center,
+         -annual_income_percentage_spent_family) |>
+  pivot_longer(
+    cols = c(median_center_based, median_family_based),
+    names_to = "setting_type",
+    values_to = "median_weekly_cost"
+  ) |>
+  mutate(
+    setting_type = recode(
+      setting_type, 
+      median_center_based = "Center Based",
+      median_family_based = "Family Based"
+    )
+  )
+
 ```
 
 -   Example selecting columns based on logical values (e.g., `starts_with()`, `ends_with()`, `contains()`, `where()`)
 
 ```{r}
 #| label: wd-2-ex-3
+
+# LAB 4: Q7 [REVISED]
+weekly_median_price <- ca_childcare |>
+  select(region, study_year, starts_with("mc_")) |>
+  pivot_longer(
+    cols = c(starts_with("mc_")),
+    names_to = "age_group", 
+    values_to = "median_weekly_price"
+  ) |>
+  mutate(age_group = recode(
+      age_group,
+      mc_infant = "Infant", 
+      mc_toddler = "Toddler", 
+      mc_preschool = "Preschool"),
+    age_group = fct_relevel(age_group, "Infant", "Toddler", "Preschool"))
 
 ```
 
@@ -69,12 +130,36 @@ execute:
 ```{r}
 #| label: wd-3-numeric-ex-1
 
+# LAB 5: Annabel Interview
+interview |>
+  filter(
+    person_id == 16371
+  )
+
 ```
 
 -   Numeric Example 2
 
 ```{r}
 #| label: wd-3-numeric-ex-1
+
+# LAB 4: Q5
+median_income_region <- ca_childcare |>
+  filter(study_year %in% c(2008, 2018)) |>
+  group_by(region, study_year) |>
+  summarize(median_income = median(mhi_2018, na.rm = TRUE)) |>
+  ungroup() |>
+  pivot_wider(
+    names_from = study_year, 
+    values_from = median_income,
+    names_prefix = "Income_"
+  ) |>
+  arrange(desc(Income_2018)) |>
+  rename(
+    Region = region,
+    "2008 Median Income ($)" = Income_2008,
+    "2018 Median Income ($)" = Income_2018
+  )
 
 ```
 
@@ -83,6 +168,12 @@ execute:
 ```{r}
 #| label: wd-3-character
 
+# LAB 5: Inspect Witness 1
+person |>
+  filter(address_street_name == "Northwestern Dr") |>
+  arrange(desc(address_number)) |>
+  head(1)
+
 ```
 
 -   Character Example 2 (example must use functions from **stringr**)
@@ -90,12 +181,31 @@ execute:
 ```{r}
 #| label: wd-3-string
 
+# LAB 5: Inspect Witness 2
+person |>
+  filter(
+    str_detect(
+      name,
+      "Annabel"
+    ),
+    address_street_name == "Franklin Ave"
+  )
+
 ```
 
 -   Date (example must use functions from **lubridate**)
 
 ```{r}
 #| label: wd-3-date
+
+# PA 5.2: Q4
+step_4 <- step_3 |>
+  filter(
+    Time.Spotted %within% interval(
+      mdy("November 24, 2022", tz = "America/Los_Angeles") - days(35),
+      mdy("November 24, 2022", tz = "America/Los_Angeles") + days(35)
+    )
+  )
 
 ```
 
@@ -106,12 +216,45 @@ execute:
 ```{r}
 #| label: wd-4-numeric-ex-1
 
+# CHALLENGE 4: Q2
+weeks_in_year <- 52
+
+summary_stats_2018 <- ca_childcare |>
+  filter(study_year == 2018) |> 
+  group_by(region) |> 
+  summarize(
+    median_center_based = median(mc_infant, na.rm = TRUE),
+    median_family_based = median(mfcc_infant, na.rm = TRUE),
+    median_income = median(mhi_2018, na.rm = TRUE)
+  ) |>
+  mutate(
+    price_gap = median_center_based - median_family_based,
+    percentage_gap = (price_gap / median_family_based) * 100,
+    annual_income_percentage_spent_center = ((median_center_based * weeks_in_year) / median_income) * 100,
+    annual_income_percentage_spent_family = ((median_family_based * weeks_in_year) / median_income) * 100 
+  ) |>
+  arrange(desc(percentage_gap))
+
 ```
 
 -   Numeric Example 2
 
 ```{r}
 #| label: wd-4-numeric-ex-2
+
+# CHALLENGE 3: Q1 
+# uses numeric thresholds in mutate()
+teacher_evals_compare <- teacher_evals |>
+  filter(question_no == 903) |>
+  mutate(
+    SET_level = if_else(SET_score_avg >= 4, "excellent", "standard"),
+    sen_level = case_when(
+      seniority <= 4 ~ "junior",
+      seniority >= 5 & seniority <= 8 ~ "senior",
+      seniority > 8 ~ "very senior"
+    )
+  ) |>
+  select(course_id, SET_level, sen_level)
 
 ```
 
@@ -120,12 +263,52 @@ execute:
 ```{r}
 #| label: wd-4-factor-ex-1
 
+# LAB 4: Q7
+weekly_median_price <- ca_childcare |>
+  select(region, study_year, mc_infant, mc_toddler, mc_preschool) |>
+  pivot_longer(
+    cols = c(mc_infant, mc_toddler, mc_preschool),
+    names_to = "age_group", 
+    values_to = "median_weekly_price"
+  ) |>
+  mutate(age_group = recode(
+      age_group,
+      mc_infant = "Infant", 
+      mc_toddler = "Toddler", 
+      mc_preschool = "Preschool"),
+    age_group = fct_relevel(age_group, "Infant", "Toddler", "Preschool"))
+
 ```
 
 -   Factor Example 2 (reordering levels)
 
 ```{r}
 #| label: wd-4-factor-ex-2
+
+# LAB 4: Q7
+ggplot(
+  data = weekly_median_price,
+  aes(
+    x = study_year,
+    y = median_weekly_price, 
+    color = fct_reorder2(region, study_year, median_weekly_price), 
+  )) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
+  facet_wrap(~ age_group, ncol = 3) + 
+  labs(
+    title = "Weekly Median Price for Center Based Childcare ($)",
+    x = "Study Year",
+    y = "",
+    color = "California Region"
+  ) + 
+  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
+  theme_minimal(base_size = 12) + 
+  theme(
+    strip.background = element_rect(
+      fill = "gray",
+    )
+  )
 
 ```
 
@@ -134,12 +317,38 @@ execute:
 ```{r}
 #| label: wd-4-string
 
+# LAB 4: Q4
+ca_childcare <- ca_childcare |> 
+  mutate(county_name = str_remove(county_name, " County")) |>
+  mutate(region = fct_collapse(
+    county_name,
+    "Superior California" = superior_counties,
+    "North Coast" = north_coast_counties,
+    "San Francisco Bay Area" = san_fran_counties,
+    "Northern San Joaquin Valley" = n_san_joaquin_counties,
+    "Central Coast" = central_coast_counties,
+    "Southern San Joaquin Valley" = s_san_joaquin_counties,
+    "Inland Empire" = inland_counties,
+    "Los Angeles County" = la_county,
+    "Orange County" = orange_county,
+    "San Diego - Imperial" = san_diego_imperial_counties
+  ))
+
 ```
 
 -   Date (example must use functions from **lubridate**)
 
 ```{r}
 #| label: wd-4-date
+
+# PA 5.2: Q1
+step_1 <- suspects |>
+  mutate(
+    Time.Spotted = force_tz(
+      Time.Spotted,
+      tzone = "America/Los_Angeles"
+    )
+  )
 
 ```
 
@@ -150,12 +359,19 @@ execute:
 ```{r}
 #| label: wd-5-left-ex-1
 
+# LAB 4: Q2
+ca_childcare <- childcare_costs |> 
+  left_join(counties, by = "county_fips_code") |>
+  filter(state_name == "California") |>
+  select(county_fips_code, county_name, state_name, everything())
+
 ```
 
 -   `right_join()` Example 1
 
 ```{r}
 #| label: wd-5-right
+
 
 ```
 
@@ -164,6 +380,13 @@ execute:
 ```{r}
 #| label: wd-5-left-right-ex-2
 
+# LAB 4: Q3
+ca_childcare <- ca_childcare |>
+  left_join(
+    tax_rev, 
+    by = c("county_name" = "entity_name", "study_year" = "year")
+  )
+
 ```
 
 -   `inner_join()` Example 1
@@ -171,12 +394,66 @@ execute:
 ```{r}
 #| label: wd-5-inner-ex-1
 
+# LAB 5: Inspect Gold Members and Match License
+get_fit_now_member |>
+  filter(
+    membership_status == "gold",
+    str_detect(
+      id,
+      "^48Z"
+    )
+  ) |>
+  inner_join(
+    person,
+    by = c("person_id" = "id")
+  ) |>
+  inner_join(
+    drivers_license,
+    by = c("license_id" = "id")
+  ) |>
+  filter(
+    str_detect(
+      plate_number, 
+      "H42W"
+    )
+  )
+
 ```
 
 -   `inner_join()` Example 2
 
 ```{r}
 #| label: wd-5-inner-ex-2
+
+# LAB 5: Find Hire 
+drivers_license |>
+  # filter for hire's physical description + car type
+  filter(  
+    gender == "female",
+    hair_color == "red",
+    car_make == "Tesla",
+    car_model == "Model S", 
+    height %in% c(65, 66, 67)
+  ) |>
+  # get possible hires' names
+  inner_join(
+    person,
+    by = c("id" = "license_id")
+  ) |> 
+  # rename to correct column name for joining
+  rename(person_id = id.y) |>
+  # match concert attendee(s) with possible hires' names 
+  inner_join(
+    facebook_event_checkin |>
+      filter(
+        event_name == "SQL Symphony Concert",
+        between(date, 20171201, 20171231) 
+      ) |>
+      group_by(person_id) |>
+      summarize(visits = n()) |>
+      filter(visits == 3),
+    by = "person_id"
+  )
 
 ```
 
@@ -203,12 +480,46 @@ execute:
 ```{r}
 #| label: wd-7-long
 
+# CHALLENGE 4: Q3
+plot_summary_stats_2018 <- summary_stats_2018 |>
+  select(region, median_center_based, median_family_based, median_income) |>
+  pivot_longer(
+    cols = c(median_center_based, median_family_based),
+    names_to = "setting_type",
+    values_to = "median_weekly_cost"
+  ) |>
+  mutate(
+    setting_type = recode(
+      setting_type, 
+      median_center_based = "Center Based",
+      median_family_based = "Family Based"
+    )
+  )
+
 ```
 
 -   `pivot_wider()`
 
 ```{r}
 #| label: wd-7-wide
+
+# LAB 4: Q5
+median_income_region <- ca_childcare |>
+  filter(study_year %in% c(2008, 2018)) |>
+  group_by(region, study_year) |>
+  summarize(median_income = median(mhi_2018, na.rm = TRUE)) |>
+  ungroup() |>
+  pivot_wider(
+    names_from = study_year, 
+    values_from = median_income,
+    names_prefix = "Income_"
+  ) |>
+  arrange(desc(Income_2018)) |>
+  rename(
+    Region = region,
+    "2008 Median Income ($)" = Income_2008,
+    "2018 Median Income ($)" = Income_2018
+  )
 
 ```
 
@@ -231,6 +542,45 @@ The following assignments satisfy the above criteria:
 ```{r}
 #| label: r-2-1
 
+# LAB 4: Q7
+weekly_median_price <- ca_childcare |>
+  select(region, study_year, mc_infant, mc_toddler, mc_preschool) |>
+  pivot_longer(
+    cols = c(mc_infant, mc_toddler, mc_preschool),
+    names_to = "age_group", 
+    values_to = "median_weekly_price"
+  ) |>
+  mutate(age_group = recode(
+      age_group,
+      mc_infant = "Infant", 
+      mc_toddler = "Toddler", 
+      mc_preschool = "Preschool"),
+    age_group = fct_relevel(age_group, "Infant", "Toddler", "Preschool"))
+
+ggplot(
+  data = weekly_median_price,
+  aes(
+    x = study_year,
+    y = median_weekly_price, 
+    color = fct_reorder2(region, study_year, median_weekly_price), 
+  )) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
+  facet_wrap(~ age_group, ncol = 3) + 
+  labs(
+    title = "Weekly Median Price for Center Based Childcare ($)",
+    x = "Study Year",
+    y = "",
+    color = "California Region"
+  ) + 
+  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
+  theme_minimal(base_size = 12) + 
+  theme(
+    strip.background = element_rect(
+      fill = "gray",
+    )
+  )
+
 ```
 
 -   Example of **dplyr** pipeline
@@ -238,12 +588,50 @@ The following assignments satisfy the above criteria:
 ```{r}
 #| label: r-2-2
 
+# LAB 3: Q5
+teacher_evals_clean <- teacher_evals |>
+  rename(sex = gender) |>
+  filter(no_participants >= 10) |>
+  mutate(across(c(course_id, teacher_id), as.character)) |>
+  select(
+    course_id, teacher_id, question_no, no_participants, resp_share, SET_score_avg, percent_failed_cur, academic_degree, seniority, sex
+  )
 ```
 
 -   Example of function formatting
 
 ```{r}
 #| label: r-2-3
+
+# LAB 5: Find Hire
+drivers_license |>
+  # filter for hire's physical description + car type
+  filter(  
+    gender == "female",
+    hair_color == "red",
+    car_make == "Tesla",
+    car_model == "Model S", 
+    height %in% c(65, 66, 67)
+  ) |>
+  # get possible hires' names
+  inner_join(
+    person,
+    by = c("id" = "license_id")
+  ) |> 
+  # rename to correct column name for joining
+  rename(person_id = id.y) |>
+  # match concert attendee(s) with possible hires' names 
+  inner_join(
+    facebook_event_checkin |>
+      filter(
+        event_name == "SQL Symphony Concert",
+        between(date, 20171201, 20171231) 
+      ) |>
+      group_by(person_id) |>
+      summarize(visits = n()) |>
+      filter(visits == 3),
+    by = "person_id"
+  )
 
 ```
 
@@ -253,6 +641,23 @@ The following assignments satisfy the above criteria:
 
 ```{r}
 #| label: r-3-example
+
+# LAB 4: Q4
+ca_childcare <- ca_childcare |> 
+  mutate(county_name = str_remove(county_name, " County")) |>
+  mutate(region = fct_collapse(
+    county_name,
+    "Superior California" = superior_counties,
+    "North Coast" = north_coast_counties,
+    "San Francisco Bay Area" = san_fran_counties,
+    "Northern San Joaquin Valley" = n_san_joaquin_counties,
+    "Central Coast" = central_coast_counties,
+    "Southern San Joaquin Valley" = s_san_joaquin_counties,
+    "Inland Empire" = inland_counties,
+    "Los Angeles County" = la_county,
+    "Orange County" = orange_county,
+    "San Diego - Imperial" = san_diego_imperial_counties
+  ))
 
 ```
 
@@ -272,6 +677,18 @@ The following assignments satisfy the above criteria:
 ```{r}
 #| label: dvs-1-num
 
+# LAB 2: Q4-8
+ggplot(data = surveys,
+      aes(x = weight, y = hindfoot_length)) + 
+      geom_point(alpha = 0.4) + 
+      facet_wrap(~ species) + 
+      labs(
+        title = "Relationship between Rodent Weight and Rodent Hindfoot Length",
+        subtitle = "Hindfoot Length (millimeters)",
+        x = "Weight (grams)", 
+        y = ""
+      )
+
 ```
 
 -   At least one numeric variable and one categorical variable
@@ -279,12 +696,45 @@ The following assignments satisfy the above criteria:
 ```{r}
 #| label: dvs-2-num-cat
 
+# CHALLENGE 2
+ggplot(data = surveys, 
+      aes(x = species, y = weight, fill = sex)) + 
+      geom_boxplot(outlier.shape = NA) + 
+      scale_fill_viridis_d(option = "C", begin = 0.2, end = 0.8) +
+      labs(
+        title = "Boxplots of the Distribution of Rodent Weight and Rodent Species", 
+        subtitle = "Sex: <span style='color:#440154;'>Male</span> | <span style='color:#440154;'>Female</span>",
+        x = "Species", 
+        y = "Weight (grams)", 
+        fill = NULL
+      ) + 
+      theme_minimal(base_size = 12) + 
+      theme(
+        legend.position = "none",
+        plot.subtitle = element_markdown(size = 11),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(face = "bold", size = 14)
+      )
+
 ```
 
 -   At least two categorical variables
 
 ```{r}
 #| label: dvs-2-cat
+
+# PA 2: Q6
+ggplot(
+  data = penguins, 
+  mapping = aes(
+    x = bill_length_mm, 
+    y = bill_depth_mm, 
+    color = species
+    )) + 
+  geom_point() + 
+  geom_smooth() + 
+  facet_wrap(vars(island))
 
 ```
 
