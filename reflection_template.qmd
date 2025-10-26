@@ -24,6 +24,7 @@ execute:
 #| label: wd-1-csv-1
 
 # LAB 2: Q1
+# imports local file using read_csv() and here()
 surveys <-read_csv(here("week-2", "surveys.csv"), show_col_types = FALSE)
 
 ```
@@ -34,6 +35,7 @@ surveys <-read_csv(here("week-2", "surveys.csv"), show_col_types = FALSE)
 #| label: wd-1-csv-2
 
 # PA-3: Data Download & Package Loading
+# imports online source using read_csv() 
 colleges <- read_csv("https://www.dropbox.com/s/bt5hvctdevhbq6j/colleges.csv?dl=1")
 
 ```
@@ -44,6 +46,7 @@ colleges <- read_csv("https://www.dropbox.com/s/bt5hvctdevhbq6j/colleges.csv?dl=
 #| label: wd-1-xlsx
 
 # PA-4: Data Import
+# imports xlsx using read_xlsx()
 military <- read_xlsx("gov_spending_per_capita.xlsx",
                       sheet = "Share of Govt. spending",
                       skip  = 7,
@@ -61,6 +64,7 @@ military <- read_xlsx("gov_spending_per_capita.xlsx",
 #| label: wd-2-ex-1
 
 # PA-3: Data Cleaning
+# selects all relevant columns for analysis
 colleges_clean1 <- colleges |>
   select(INSTNM,
          CITY,
@@ -82,6 +86,7 @@ colleges_clean1 <- colleges |>
 #| label: wd-2-ex-2
 
 # CHALLENGE 4: O3 [REVISED]
+# removes using negation operator 
 plot_summary_stats_2018 <- summary_stats_2018 |>
   select(-price_gap, -percentage_gap,
          -annual_income_percentage_spent_center,
@@ -107,6 +112,7 @@ plot_summary_stats_2018 <- summary_stats_2018 |>
 #| label: wd-2-ex-3
 
 # LAB 4: Q7 [REVISED]
+# selects all cost related columns with the 'mc' prefix
 weekly_median_price <- ca_childcare |>
   select(region, study_year, starts_with("mc_")) |>
   pivot_longer(
@@ -131,6 +137,7 @@ weekly_median_price <- ca_childcare |>
 #| label: wd-3-numeric-ex-1
 
 # LAB 5: Annabel Interview
+# filters for rows that containing the specified person_id
 interview |>
   filter(
     person_id == 16371
@@ -144,6 +151,7 @@ interview |>
 #| label: wd-3-numeric-ex-1
 
 # LAB 4: Q5
+# filters for years between 2008-2018
 median_income_region <- ca_childcare |>
   filter(study_year %in% c(2008, 2018)) |>
   group_by(region, study_year) |>
@@ -169,6 +177,7 @@ median_income_region <- ca_childcare |>
 #| label: wd-3-character
 
 # LAB 5: Inspect Witness 1
+# filters for rows containing the specified street name
 person |>
   filter(address_street_name == "Northwestern Dr") |>
   arrange(desc(address_number)) |>
@@ -182,6 +191,7 @@ person |>
 #| label: wd-3-string
 
 # LAB 5: Inspect Witness 2
+# filters for rows that match the specified name
 person |>
   filter(
     str_detect(
@@ -199,6 +209,7 @@ person |>
 #| label: wd-3-date
 
 # PA 5.2: Q4
+# filters for timestamps 35 days before/ after Nov. 24
 step_4 <- step_3 |>
   filter(
     Time.Spotted %within% interval(
@@ -217,6 +228,7 @@ step_4 <- step_3 |>
 #| label: wd-4-numeric-ex-1
 
 # CHALLENGE 4: Q2
+# create new numeric variables and percentages 
 weeks_in_year <- 52
 
 summary_stats_2018 <- ca_childcare |>
@@ -243,7 +255,7 @@ summary_stats_2018 <- ca_childcare |>
 #| label: wd-4-numeric-ex-2
 
 # CHALLENGE 3: Q1 
-# uses numeric thresholds in mutate()
+# creates new numeric levels 
 teacher_evals_compare <- teacher_evals |>
   filter(question_no == 903) |>
   mutate(
@@ -264,6 +276,7 @@ teacher_evals_compare <- teacher_evals |>
 #| label: wd-4-factor-ex-1
 
 # LAB 4: Q7
+# renames and reorders factor levels
 weekly_median_price <- ca_childcare |>
   select(region, study_year, mc_infant, mc_toddler, mc_preschool) |>
   pivot_longer(
@@ -286,6 +299,7 @@ weekly_median_price <- ca_childcare |>
 #| label: wd-4-factor-ex-2
 
 # LAB 4: Q7
+# uses fct_reorder2() to reorder legend entries using data values
 ggplot(
   data = weekly_median_price,
   aes(
@@ -318,6 +332,7 @@ ggplot(
 #| label: wd-4-string
 
 # LAB 4: Q4
+# uses fct_collapse() to group counties into regions
 ca_childcare <- ca_childcare |> 
   mutate(county_name = str_remove(county_name, " County")) |>
   mutate(region = fct_collapse(
@@ -342,6 +357,7 @@ ca_childcare <- ca_childcare |>
 #| label: wd-4-date
 
 # PA 5.2: Q1
+# uses force_tz() to adjust time zone data
 step_1 <- suspects |>
   mutate(
     Time.Spotted = force_tz(
@@ -360,6 +376,7 @@ step_1 <- suspects |>
 #| label: wd-5-left-ex-1
 
 # LAB 4: Q2
+# merges county and childcare datasets
 ca_childcare <- childcare_costs |> 
   left_join(counties, by = "county_fips_code") |>
   filter(state_name == "California") |>
@@ -381,6 +398,7 @@ ca_childcare <- childcare_costs |>
 #| label: wd-5-left-right-ex-2
 
 # LAB 4: Q3
+# merges tax and childcare datasets 
 ca_childcare <- ca_childcare |>
   left_join(
     tax_rev, 
@@ -395,6 +413,7 @@ ca_childcare <- ca_childcare |>
 #| label: wd-5-inner-ex-1
 
 # LAB 5: Inspect Gold Members and Match License
+# chains multiples to match members, people, and license
 get_fit_now_member |>
   filter(
     membership_status == "gold",
@@ -426,6 +445,7 @@ get_fit_now_member |>
 #| label: wd-5-inner-ex-2
 
 # LAB 5: Find Hire 
+# merges driver record and event check in datasets 
 drivers_license |>
   # filter for hire's physical description + car type
   filter(  
@@ -481,6 +501,7 @@ drivers_license |>
 #| label: wd-7-long
 
 # CHALLENGE 4: Q3
+# reshapes wide data to long for form
 plot_summary_stats_2018 <- summary_stats_2018 |>
   select(region, median_center_based, median_family_based, median_income) |>
   pivot_longer(
@@ -504,6 +525,7 @@ plot_summary_stats_2018 <- summary_stats_2018 |>
 #| label: wd-7-wide
 
 # LAB 4: Q5
+# widens grouped data to compare 2008 vs 2018 
 median_income_region <- ca_childcare |>
   filter(study_year %in% c(2008, 2018)) |>
   group_by(region, study_year) |>
@@ -529,11 +551,11 @@ median_income_region <- ca_childcare |>
 
 The following assignments satisfy the above criteria:
 
--   Example 1
--   Example 2
--   Example 3
--   Example 4
--   Example 5
+-   Lab 2
+-   Challenge 2
+-   Lab 3
+-   Challenge 3
+-   Lab 5
 
 **R-2: I can write well documented and tidy code.**
 
@@ -543,6 +565,8 @@ The following assignments satisfy the above criteria:
 #| label: r-2-1
 
 # LAB 4: Q7
+# GROWING COMMENT: reorder colors in legend to appear in same order as lines in plot
+# REVISION FOR SUCCESS: use fct_reorder2() to automatically reorder legend. Clearly labelled plot with theme adjustments and color mapping.
 weekly_median_price <- ca_childcare |>
   select(region, study_year, mc_infant, mc_toddler, mc_preschool) |>
   pivot_longer(
@@ -589,6 +613,7 @@ ggplot(
 #| label: r-2-2
 
 # LAB 3: Q5
+# RECIEVED SUCCESS: pipeline cleans and organizes evaluation data
 teacher_evals_clean <- teacher_evals |>
   rename(sex = gender) |>
   filter(no_participants >= 10) |>
@@ -604,6 +629,7 @@ teacher_evals_clean <- teacher_evals |>
 #| label: r-2-3
 
 # LAB 5: Find Hire
+# well documented comments for each transformation/ join
 drivers_license |>
   # filter for hire's physical description + car type
   filter(  
@@ -643,6 +669,8 @@ drivers_license |>
 #| label: r-3-example
 
 # LAB 4: Q4
+# GROWING COMMENT: suppose to use function from forcats 
+# REVISION FOR SUCCESS: uses fct_collapse() from forcats for generalized transformations
 ca_childcare <- ca_childcare |> 
   mutate(county_name = str_remove(county_name, " County")) |>
   mutate(region = fct_collapse(
@@ -678,6 +706,7 @@ ca_childcare <- ca_childcare |>
 #| label: dvs-1-num
 
 # LAB 2: Q4-8
+# RECIEVED SUCCESS: visualizes weight vs hindfoot_length 
 ggplot(data = surveys,
       aes(x = weight, y = hindfoot_length)) + 
       geom_point(alpha = 0.4) + 
@@ -697,6 +726,7 @@ ggplot(data = surveys,
 #| label: dvs-2-num-cat
 
 # CHALLENGE 2
+# RECIEVED SUCCESS: compares numeric weights across categorical species using a boxplot
 ggplot(data = surveys, 
       aes(x = species, y = weight, fill = sex)) + 
       geom_boxplot(outlier.shape = NA) + 
@@ -725,6 +755,7 @@ ggplot(data = surveys,
 #| label: dvs-2-cat
 
 # PA 2: Q6
+# grouped patterns using facets
 ggplot(
   data = penguins, 
   mapping = aes(
@@ -753,6 +784,8 @@ ggplot(
 #| label: dvs-2-ex-1
 
 # LAB 4: Q7
+# GROWING COMMENT: reorder colors in legend to appear in same order as lines in plot
+# REVISION FOR SUCCESS: use fct_reorder2() to automatically reorder legend. Clearly labelled plot with theme adjustments and color mapping. Also applied theme adjustments to improve readability. 
 ggplot(
   data = weekly_median_price,
   aes(
@@ -785,6 +818,7 @@ ggplot(
 #| label: dvs-2-ex-2
 
 # LAB 4: Q7
+# color customizations using colorRampPalette
 ggplot(
   data = weekly_median_price,
   aes(
@@ -817,6 +851,7 @@ ggplot(
 #| label: dvs-2-ex-3
 
 # LAB 2: Q10-15 [REVISED]
+# RECIEVED SUCCESS: descriptive titles/ subtitles for context
 ggplot(data = surveys, 
       aes(x = species, y = weight)) + 
       geom_boxplot(outlier.shape = NA) + 
@@ -837,7 +872,7 @@ ggplot(data = surveys,
 #| label: dvs-2-ex-4
 
 # LAB 2: Q10-15 [REVISED]
-# rotates species label -> modifies x axis to prevent label overlap
+# RECIEVED SUCCESS: rotates species label -> modifies x axis to prevent label overlap (easier to read)
 ggplot(data = surveys, 
       aes(x = species, y = weight)) + 
       geom_boxplot(outlier.shape = NA) + 
@@ -858,6 +893,8 @@ ggplot(data = surveys,
 #| label: dvs-2-ex-5
 
 # LAB 4: Q7
+# GROWING COMMENT: reorder colors in legend to appear in same order as lines in plot
+# REVISION FOR SUCCESS: use fct_reorder2() to automatically reorder legend. 
 ggplot(
   data = weekly_median_price,
   aes(
@@ -892,6 +929,7 @@ ggplot(
 #| label: dvs-3-1-ex-1
 
 # CHALLENGE 2
+# RECIEVED SUCCESS: virdis palette for non-standard coloring 
 ggplot(data = surveys, 
       aes(x = species, y = weight, fill = sex)) + 
       geom_boxplot(outlier.shape = NA) + 
@@ -920,6 +958,7 @@ ggplot(data = surveys,
 #| label: dvs-3-1-ex-2
 
 # LAB 4: Q7
+# custom colorRampPalette colors
 ggplot(
   data = weekly_median_price,
   aes(
@@ -968,6 +1007,7 @@ ggplot(
 #| label: dvs-4-summarize
 
 # LAB 4: Q6
+# RECIEVED SUCCESS: calculates group medians using summarize()
 median_infant_cb <- ca_childcare |>
   filter(study_year == 2018) |>
   group_by(region) |>
@@ -982,6 +1022,7 @@ median_infant_cb <- ca_childcare |>
 #| label: dvs-4-across
 
 # LAB 3: Q5
+# RECIEVED SUCCESS: uses across() to apply transformations over multiple variables
 teacher_evals_clean <- teacher_evals |>
   rename(sex = gender) |>
   filter(no_participants >= 10) |>
@@ -1000,6 +1041,7 @@ teacher_evals_clean <- teacher_evals |>
 #| label: dvs-5-1
 
 # LAB 4: Q5
+# summarizes median income across regions and years 
 median_income_region <- ca_childcare |>
   filter(study_year %in% c(2008, 2018)) |>
   group_by(region, study_year) |>
@@ -1025,6 +1067,7 @@ median_income_region <- ca_childcare |>
 #| label: dvs-5-2
 
 # CHALLENGE 4: Q2
+# summarizes childcare stats across regions 
 weeks_in_year <- 52
 
 summary_stats_2018 <- ca_childcare |>
@@ -1053,6 +1096,7 @@ summary_stats_2018 <- ca_childcare |>
 #| label: dvs-6-ex-1
 
 # LAB 4: Q5
+# renamed columns to clarify table context
 median_income_region <- ca_childcare |>
   filter(study_year %in% c(2008, 2018)) |>
   group_by(region, study_year) |>
@@ -1094,6 +1138,7 @@ median_income_region <- ca_childcare |>
 #| label: dvs-7-ex-1
 
 # CHALLENGE 4: Q3
+# uses non default colors
 ggplot(
   data = plot_summary_stats_2018, 
   aes(
@@ -1123,6 +1168,7 @@ ggplot(
 #| label: dvs-7-ex-2
 
 # LAB 4: Q5
+# uses pivot_wider() to reshape data (improves readability for regional comparison)
 median_income_region <- ca_childcare |>
   filter(study_year %in% c(2008, 2018)) |>
   group_by(region, study_year) |>
@@ -1152,6 +1198,7 @@ median_income_region <- ca_childcare |>
 #| label: pe-1-one-call
 
 # LAB 4: Q7
+# selects multiple columms in one select()
 weekly_median_price <- ca_childcare |>
   select(region, study_year, mc_infant, mc_toddler, mc_preschool) |>
   pivot_longer(
@@ -1174,6 +1221,7 @@ weekly_median_price <- ca_childcare |>
 #| label: pe-1-across
 
 # LAB 3: Q5
+# uses across() to simplify reptitive code  
 teacher_evals_clean <- teacher_evals |>
   rename(sex = gender) |>
   filter(no_participants >= 10) |>
@@ -1245,6 +1293,7 @@ teacher_evals_clean <- teacher_evals |>
 #| label: pe-4-1
 
 # LAB 5: Inspect Gold Members and Match License
+# uses current tidyverse syntax 
 get_fit_now_member |>
   filter(
     membership_status == "gold",
@@ -1276,6 +1325,8 @@ get_fit_now_member |>
 #| label: pe-4-2
 
 # LAB 4: Q7 [REVISED]
+# revised to create a wrangling pipeline
+# performs transformations and pipes directly into ggplot()
 #| fig-width: 13
 #| fig-height: 5
 ca_childcare |>
@@ -1342,6 +1393,7 @@ ca_childcare |>
 #| label: dsm-2-1
 
 # LAB 2: Q17
+# ANOVA to compare species mean in rodent dataset
 aov(weight ~ species, data = surveys) |> summary()
 
 ```
@@ -1352,6 +1404,7 @@ aov(weight ~ species, data = surveys) |> summary()
 #| label: dsm-2-2
 
 # LAB 1: Q10-13
+# two sample t test comparing supplement groups
 t.test(len ~ supp,
       data = ToothGrowth, 
       var.equal = FALSE, 
@@ -1365,6 +1418,7 @@ t.test(len ~ supp,
 #| label: dsm-2-3
 
 # CHALLENGE 3: Q3
+# chi square test to check for independence between variables
 chi_square_test <- chisq.test(
   table(teacher_evals_compare$SET_level, 
   teacher_evals_compare$sen_level)
@@ -1374,16 +1428,28 @@ chi_square_test <- chisq.test(
 
 ## Revising My Thinking
 
-<!-- How did you revise your thinking throughout the course? How did you revise your thinking on the code examples you have provided in your portfolio? -->
+Throughout this course, I consistently revised my work based on comments I received from peers and feedback I received on rubrics, focusing on writing cleaner and more efficient code each week.
 
-<!-- For the revisions included in your Portfolio, to help me understand the nature of your revisions, please denote somehow the feedback I provided you (e.g., boldface, italics, colored text) before your revisions. -->
+Early on in the quarter, my main goal was making code "work" but through feedback and reflection, I began to understand that professional R programming is also about tidiness, reproduciblity, and readability. For instance, after receiving feedback on my Lab 4 submission, I revised my plots to use fct_reorder2() so that my legend automatically aligned with color order. Although my plot accurately displayed the data, this improvement was crucial for making my visualization clearer. Moreover, through applying this revision, I learned how to write adaptable code that won't break if data changes (as fct_reorder2() is automatic). Similarly, revising my YAML settings and chunk options to remove messages/ warnings helped me see that formatting choices can directly affect how a report reads. Iterating through feedback and revisions have also taught me to replace absolute file paths with here(), to ensure my projects render smoothly across computers, reinforcing reproducibility.
+
+Although these revisions seem to only address small issues, over the past weeks, I've noticed that each change encouraged me towards more thoughtful, modular, and sustainable coding practices that I've since applied in later labs/ challenges.
 
 ## Extending My Thinking
 
-<!-- How did you extended your thinking throughout the course? How did you extend your thinking on the code examples you have provided in your portfolio? -->
+For the past weeks, I've learned to extend my thinking by experimenting beyond what was explicitly required in the labs/ challenges. I began exploring new palettes like viridis and colorRampPalette() to make my plots more visually pleasing. When analyzing childcare costs, I experimented with pivot_longer() and fct_relevel() to make grouped comparison easier to interpret, deepening my understanding of how data structure and visualization interacts. Furthermore, working through Lab 5's relational joins, to identify the prime suspect in the crime report, stretched my thinking; I learned how to efficiently link multiple tables logically using chained inner_join()s and saw how relational data mirrors real world applications. Additionally, I often look up documentation for functions from lubridate and stringr to find ways to reduce redundant code and optimize efficiency in my pipelines. Now, halfway through the quarter, I've learned to to make deliberate choices to write cleaner, smarter, and more insightful analyses that showcase creativity and technical precision.
 
 ## Peer Support & Collaboration
 
-<!-- Include an image or a description of feedback you gave that you are proud of (either in a peer review or in Discord). -->
+Peer Review (Lab 4):
 
-<!-- Include a description of how you grew as a collaborator through the weekly pair programming activities.   -->
+"Hi Aidan!
+Amazing work on Lab 4! Overall, your code is very organized, readable, and well structured. I like that all your variables were clearly named-- it made following through your data transformations very easy.
+Here are a few suggestions that might help improve the tidiness and cleanliness of your code: \
+- Although your pipelines are pretty consistent, they could be even cleaner by adding spaces around all '=' operators and every line ends with either a '\|\>' or '+' operator. Keeping this in consideration will help distinguish plot layers. \
+- Another piece of advice I think you could benefit from is condensing related calculations within single function calls. I noticed that in a few of your code chunks, you used mutate() or summarise() multiple times in sequence. Condensing these steps into one call will help make your code more efficient and less redundant. \
+- This is only if you want to go above and beyond, but it would be super helpful if you added brief comments or md explanations describing longer code blocks, so readers can follow along easier. \
+All in all, your source code was very well written and your final rendering looks great! All lab requirements are met. With a few tweaks, your code is close to being perfect!"
+
+One example of feedback I'm proud of was from my peer review on Aidan's Lab 4 submission. In my review, I balanced positive and suggestive feedback by complimenting his clear variable naming and organized structure and providing specific actionable advice to elevate the tidiness of his code. My suggestions were inspired by the tidyverse syntax standards and how my own understanding of clean and readable code had evolved throughout the course. Giving this feedback helped me recognize that I could clearly identify good coding practices in other people's work and articulate ways to improve efficiency. By reviewing and writing feedback, I've strengthened my own awareness as a collaborator and programmer.
+
+Furthermore, through weekly pair programming activities, I've also grown more confident working alongside classmates. I learned to balance offering help with listening carefully to my partner's thought process so we could debug/ brainstorm together effectively. I really enjoyed having defined roles (one talking through code/ typer)-- collaborating this way showed me how valuable peer exchange is.
