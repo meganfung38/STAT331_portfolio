@@ -23,7 +23,7 @@ execute:
 ```{r}
 #| label: wd-1-csv-1
 
-# LAB 2: Q1
+# LAB 2: LOAD-DATA
 # imports local file using read_csv() and here()
 surveys <-read_csv(here("week-2", "surveys.csv"), show_col_types = FALSE)
 
@@ -34,9 +34,9 @@ surveys <-read_csv(here("week-2", "surveys.csv"), show_col_types = FALSE)
 ```{r}
 #| label: wd-1-csv-2
 
-# PA-3: Data Download & Package Loading
-# imports online source using read_csv() 
-colleges <- read_csv("https://www.dropbox.com/s/bt5hvctdevhbq6j/colleges.csv?dl=1")
+# LAB 7: Setup 
+# imports local file using read.csv() and here()
+fish <- read.csv(here("week-7", "data", "BlackfootFish.csv"))
 
 ```
 
@@ -136,12 +136,15 @@ weekly_median_price <- ca_childcare |>
 ```{r}
 #| label: wd-3-numeric-ex-1
 
-# LAB 5: Annabel Interview
-# filters for rows that containing the specified person_id
-interview |>
-  filter(
-    person_id == 16371
-  )
+# LAB 4: Q6
+# filters for year 2018 
+median_infant_cb <- ca_childcare |>
+  filter(study_year == 2018) |>
+  group_by(region) |>
+  summarize(median_infant_price = median(mc_infant, na.rm = TRUE)) |>
+  arrange(median_infant_price)
+  
+as.data.frame(median_infant_cb)
 
 ```
 
@@ -176,12 +179,15 @@ median_income_region <- ca_childcare |>
 ```{r}
 #| label: wd-3-character
 
-# LAB 5: Inspect Witness 1
-# filters for rows containing the specified street name
-person |>
-  filter(address_street_name == "Northwestern Dr") |>
-  arrange(desc(address_number)) |>
-  head(1)
+# LAB 10: Q6
+# filters for rows where term is 'x'
+tidy(
+  lm(y ~ x, data = df), 
+  conf.int = TRUE,
+  conf.level = 0.95
+) |> 
+filter(term == "x") |>
+select(estimate, conf.low, conf.high)
 
 ```
 
@@ -208,15 +214,48 @@ person |>
 ```{r}
 #| label: wd-3-date
 
-# PA 5.2: Q4
-# filters for timestamps 35 days before/ after Nov. 24
-step_4 <- step_3 |>
+# LAB 5: Find Hire 
+# filter rows based on date range using ymd()  
+hires <- drivers_license |>
   filter(
-    Time.Spotted %within% interval(
-      mdy("November 24, 2022", tz = "America/Los_Angeles") - days(35),
-      mdy("November 24, 2022", tz = "America/Los_Angeles") + days(35)
-    )
+    gender == "female",
+    hair_color == "red",
+    car_make == "Tesla",
+    car_model == "Model S",
+    height %in% c(65, 66, 67)
+  ) |>
+  rename(license_id = id) |>
+  inner_join(
+    person,
+    join_by(license_id == license_id)
+  ) |>
+  select(
+    id, name, gender, hair_color, car_make, car_model, height
   )
+
+concert_attendees <- facebook_event_checkin |>
+  mutate(
+    date = ymd(as.character(date))
+  ) |>
+  filter(
+    event_name == "SQL Symphony Concert",
+    between(
+      date, 
+      ymd("2017-12-01"), 
+      ymd("2017-12-31")
+    )
+  ) |>
+  group_by(person_id) |>
+  summarize(visits = n()) |>
+  filter(visits == 3)
+
+suspect <- hires |>
+  inner_join(
+    concert_attendees, 
+    join_by(id == person_id)
+  )
+
+suspect
 
 ```
 
@@ -331,23 +370,60 @@ ggplot(
 ```{r}
 #| label: wd-4-string
 
-# LAB 4: Q4
-# uses fct_collapse() to group counties into regions
-ca_childcare <- ca_childcare |> 
-  mutate(county_name = str_remove(county_name, " County")) |>
-  mutate(region = fct_collapse(
-    county_name,
-    "Superior California" = superior_counties,
-    "North Coast" = north_coast_counties,
-    "San Francisco Bay Area" = san_fran_counties,
-    "Northern San Joaquin Valley" = n_san_joaquin_counties,
-    "Central Coast" = central_coast_counties,
-    "Southern San Joaquin Valley" = s_san_joaquin_counties,
-    "Inland Empire" = inland_counties,
-    "Los Angeles County" = la_county,
-    "Orange County" = orange_county,
-    "San Diego - Imperial" = san_diego_imperial_counties
-  ))
+# LAB 9: Q5 [REVISED]
+# modified academic_degree values to readable labels
+# created sen_level to classify seniority levels
+# modified sex values using str_to_title()
+eval_metrics <- evals |>
+  distinct(teacher_id, .keep_all = TRUE) |>
+  mutate(
+    academic_degree = case_when(
+      academic_degree == "no_dgr" ~ "No Degree", 
+      academic_degree == "ma" ~ "Masters",
+      academic_degree == "dr" ~ "Doctorate",
+      academic_degree == "prof" ~ "Tenured Professor"
+    ),
+    sen_level = case_when(
+      seniority <= 4 ~ "Junior",
+      seniority <= 8 ~ "Senior", 
+      seniority > 8 ~ "Very Senior"
+    ),
+    sex = str_to_title(sex)
+  )
+
+academic_degree_rows <- eval_metrics |>
+  count(academic_degree, name = "n") |>
+  mutate(
+    variable = "Academic Degree",
+    level = academic_degree,
+    prop = n / sum(n)
+  ) |>
+  select(variable, level, n, prop)
+
+seniority_rows <- eval_metrics |>
+  count(sen_level, name = "n") |>
+  mutate(
+    variable = "Seniority",
+    level = sen_level,
+    prop = n / sum(n)
+  ) |>
+  select(variable, level, n, prop)
+
+sex_rows <- eval_metrics |>
+  count(sex, name = "n") |>
+  mutate(
+    variable = "Sex",
+    level = sex,
+    prop = n / sum(n)
+  ) |>
+  select(variable, level, n, prop)
+
+bind_rows(academic_degree_rows, seniority_rows, sex_rows) |>
+  kable() |>
+  kable_styling(
+    full_width = FALSE, 
+    bootstrap_options = "striped"
+  )
 
 ```
 
@@ -356,15 +432,48 @@ ca_childcare <- ca_childcare |>
 ```{r}
 #| label: wd-4-date
 
-# PA 5.2: Q1
-# uses force_tz() to adjust time zone data
-step_1 <- suspects |>
-  mutate(
-    Time.Spotted = force_tz(
-      Time.Spotted,
-      tzone = "America/Los_Angeles"
-    )
+# LAB 5: Find Hire
+# format values in date column to be proper Date objects using ymd()
+hires <- drivers_license |>
+  filter(
+    gender == "female",
+    hair_color == "red",
+    car_make == "Tesla",
+    car_model == "Model S",
+    height %in% c(65, 66, 67)
+  ) |>
+  rename(license_id = id) |>
+  inner_join(
+    person,
+    join_by(license_id == license_id)
+  ) |>
+  select(
+    id, name, gender, hair_color, car_make, car_model, height
   )
+
+concert_attendees <- facebook_event_checkin |>
+  mutate(
+    date = ymd(as.character(date))
+  ) |>
+  filter(
+    event_name == "SQL Symphony Concert",
+    between(
+      date, 
+      ymd("2017-12-01"), 
+      ymd("2017-12-31")
+    )
+  ) |>
+  group_by(person_id) |>
+  summarize(visits = n()) |>
+  filter(visits == 3)
+
+suspect <- hires |>
+  inner_join(
+    concert_attendees, 
+    join_by(id == person_id)
+  )
+
+suspect
 
 ```
 
@@ -389,6 +498,17 @@ ca_childcare <- childcare_costs |>
 ```{r}
 #| label: wd-5-right
 
+# LAB 5: Miranda's Interview [REVISED
+# originally used left_join()
+# revised to use right_join() to preserve intended logic of verifying that Miranda 
+# has no interview logic 
+interview |>
+  right_join(
+    person |>
+      filter(name == "Miranda Priestly"),
+    join_by(person_id == id)
+  ) |>
+  select(name, transcript)
 
 ```
 
@@ -484,12 +604,44 @@ drivers_license |>
 ```{r}
 #| label: wd-6-semi
 
+# LAB 5: Inspect Witness 2 [REVISED]
+# originally used an inner_join()
+# revised to use semi_join() to express real intent of filtering for 
+# a person that only appears in the interview table
+# inner_join() adds extra columns that are not used in this step
+person |>
+  semi_join(
+    interview, 
+    join_by(id == person_id)
+  ) |>
+  filter(
+    str_detect(
+      name,
+      "Annabel"
+    ),
+    address_street_name == "Franklin Ave"
+  ) 
+
 ```
 
 -   `anti_join()`
 
 ```{r}
 #| label: wd-6-anti
+
+# LAB 5: Miranda's Interview [REVISED]
+# originally used a left_join()
+# revised to use anti_join() to keep only the rows in person that have no
+# matching interview 
+# left_join() kept unecessary columns 
+person |>
+  filter(
+    name == "Miranda Priestly"
+  ) |>
+  anti_join(
+    interview,
+    join_by(id == person_id)
+  )
 
 ```
 
@@ -551,11 +703,11 @@ median_income_region <- ca_childcare |>
 
 The following assignments satisfy the above criteria:
 
--   Lab 2
--   Challenge 2
--   Lab 3
--   Challenge 3
--   Lab 5
+-   Lab 9
+-   Challenge 7
+-   Lab 7
+-   Lab 8
+-   Lab 10
 
 **R-2: I can write well documented and tidy code.**
 
@@ -564,45 +716,51 @@ The following assignments satisfy the above criteria:
 ```{r}
 #| label: r-2-1
 
-# LAB 4: Q7
-# GROWING COMMENT: reorder colors in legend to appear in same order as lines in plot
-# REVISION FOR SUCCESS: use fct_reorder2() to automatically reorder legend. Clearly labelled plot with theme adjustments and color mapping.
-weekly_median_price <- ca_childcare |>
-  select(region, study_year, mc_infant, mc_toddler, mc_preschool) |>
-  pivot_longer(
-    cols = c(mc_infant, mc_toddler, mc_preschool),
-    names_to = "age_group", 
-    values_to = "median_weekly_price"
+# CHALLENGE 7: Q5
+# well documented comments following through each step 
+# pipe workflow is clean and readable
+# recieved 'Above and Beyond' on rubric 
+fish |> 
+  # create column for condition index
+  mutate(
+    cond_idx = get_condition_idx(weight, length)
   ) |>
-  mutate(age_group = recode(
-      age_group,
-      mc_infant = "Infant", 
-      mc_toddler = "Toddler", 
-      mc_preschool = "Preschool"),
-    age_group = fct_relevel(age_group, "Infant", "Toddler", "Preschool"))
-
-ggplot(
-  data = weekly_median_price,
-  aes(
-    x = study_year,
-    y = median_weekly_price, 
-    color = fct_reorder2(region, study_year, median_weekly_price), 
-  )) + 
-  geom_point(alpha = 0.5) + 
-  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
-  facet_wrap(~ age_group, ncol = 3) + 
-  labs(
-    title = "Weekly Median Price for Center Based Childcare ($)",
-    x = "Study Year",
-    y = "",
-    color = "California Region"
-  ) + 
-  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
-  theme_minimal(base_size = 12) + 
-  theme(
-    strip.background = element_rect(
-      fill = "gray",
+  # get year-species combinations
+  group_by(year, species) |> 
+  # for each combination -> get mean and standard deviation of condition index
+  summarize(
+    mean_cond_idx = mean(cond_idx, na.rm = TRUE), 
+    standard_deviation_cond_idx = sd(cond_idx, na.rm = TRUE),
+    .groups = "drop"
+  ) |> 
+  # create plot: year vs mean condition index, species encoded by color 
+  ggplot(
+    aes(
+      x = year, 
+      y = mean_cond_idx, 
+      color = species
     )
+  ) +
+  geom_line(linewidth = 1) + 
+  geom_point(size = 2) +
+  # error bars: +/- one standard deviation
+  geom_errorbar(
+    aes(
+      ymin = mean_cond_idx - standard_deviation_cond_idx, 
+      ymax = mean_cond_idx + standard_deviation_cond_idx
+    ),
+    width = 0.3
+  ) + 
+  labs(
+    title = "Avg. Fish Condition Index by Species Over Time", 
+    x = "Year", 
+    y = "Condition Index (g/cm³, scaled *100)",
+    color = "Species"
+  ) + 
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(face = "bold", size = 15),
+    legend.position = "bottom"
   )
 
 ```
@@ -612,15 +770,66 @@ ggplot(
 ```{r}
 #| label: r-2-2
 
-# LAB 3: Q5
-# RECIEVED SUCCESS: pipeline cleans and organizes evaluation data
-teacher_evals_clean <- teacher_evals |>
-  rename(sex = gender) |>
-  filter(no_participants >= 10) |>
-  mutate(across(c(course_id, teacher_id), as.character)) |>
-  select(
-    course_id, teacher_id, question_no, no_participants, resp_share, SET_score_avg, percent_failed_cur, academic_degree, seniority, sex
+# LAB 10: Q8
+# well documented comments 
+# pipe is clean and tidy 
+# recieved a comment 'nice code comments!"
+mycifun <- function(beta0, beta1, n) {
+
+  # get x values from uniform dist. 
+  x <- runif(
+    n, 
+    min = 0, 
+    max = 1
   )
+  
+  # get random error from normal dist.
+  ep <- rnorm(
+    n, 
+    mean = 0, 
+    sd = 1
+  )
+  
+  # get y based on population model 
+  y <- beta0 + (beta1 * x) + ep
+  
+  # extract df
+  df <- tibble(
+   x = x, 
+   y = y
+  )
+  
+  # fit regression model 
+  lm(
+    formula = (y ~ x),
+    data = df
+  ) |> 
+  # get slope estimate and 95% CI 
+  tidy(
+    conf.int = TRUE, 
+    conf.level = 0.95
+  ) |>
+  # only return wanted values 
+  filter(
+    term == "x"
+  ) |> 
+  select(
+    estimate, 
+    conf.low, 
+    conf.high
+  ) |> 
+  # see if population slope is in CI 
+  mutate(
+    cover = if_else(
+      (beta1 >= conf.low) & (beta1 <= conf.high),
+      1, 
+      0
+    )
+  )
+  
+}
+
+
 ```
 
 -   Example of function formatting
@@ -628,36 +837,34 @@ teacher_evals_clean <- teacher_evals |>
 ```{r}
 #| label: r-2-3
 
-# LAB 5: Find Hire
-# well documented comments for each transformation/ join
-drivers_license |>
-  # filter for hire's physical description + car type
-  filter(  
-    gender == "female",
-    hair_color == "red",
-    car_make == "Tesla",
-    car_model == "Model S", 
-    height %in% c(65, 66, 67)
-  ) |>
-  # get possible hires' names
-  inner_join(
-    person,
-    by = c("id" = "license_id")
-  ) |> 
-  # rename to correct column name for joining
-  rename(person_id = id.y) |>
-  # match concert attendee(s) with possible hires' names 
-  inner_join(
-    facebook_event_checkin |>
-      filter(
-        event_name == "SQL Symphony Concert",
-        between(date, 20171201, 20171231) 
-      ) |>
-      group_by(person_id) |>
-      summarize(visits = n()) |>
-      filter(visits == 3),
-    by = "person_id"
-  )
+# LAB 8: Q4
+# well documented comments 
+# function is readable and clean 
+# recieved a comment 'Nice work checking to see if the aesthetic values were either “fill” or “color” and not “dog"!'
+style_plot <- function(
+      plot, 
+      theme_fn = theme_minimal, 
+      palette = RColorBrewer::brewer.pal(8, "Set2"), 
+      aesthetic
+    ) {
+      # validate aesthetic 
+      if (!aesthetic %in% c("color", "fill")) {
+        return("Aesthetic must be either 'color' or 'fill'")
+      }
+      # apply color palette 
+      create_plot <- plot + 
+        {
+          if (aesthetic == "color") {
+            scale_color_manual(values = palette)
+          } else if (aesthetic == "fill") {
+            scale_fill_manual(values = palette)
+          }
+        } + 
+        # apply theme 
+        theme_fn(base_size = 12) 
+      
+      return(create_plot)
+    }
 
 ```
 
@@ -668,24 +875,38 @@ drivers_license |>
 ```{r}
 #| label: r-3-example
 
-# LAB 4: Q4
-# GROWING COMMENT: suppose to use function from forcats 
-# REVISION FOR SUCCESS: uses fct_collapse() from forcats for generalized transformations
-ca_childcare <- ca_childcare |> 
-  mutate(county_name = str_remove(county_name, " County")) |>
-  mutate(region = fct_collapse(
-    county_name,
-    "Superior California" = superior_counties,
-    "North Coast" = north_coast_counties,
-    "San Francisco Bay Area" = san_fran_counties,
-    "Northern San Joaquin Valley" = n_san_joaquin_counties,
-    "Central Coast" = central_coast_counties,
-    "Southern San Joaquin Valley" = s_san_joaquin_counties,
-    "Inland Empire" = inland_counties,
-    "Los Angeles County" = la_county,
-    "Orange County" = orange_county,
-    "San Diego - Imperial" = san_diego_imperial_counties
-  ))
+# CHALLENGE 7: Q2
+# has input checks and is resistant to input changes 
+# function fails safely and clearly
+clean_data <- function(vec, min_val, max_val) {
+  
+  # function input: vector numeric? 
+  if (!is.numeric(vec)) {
+    return ("vec must be numeric.")
+  }
+  
+  # function input: min_val numeric? single value (ex. no c(...))?
+  if (!is.numeric(min_val) || length(min_val) != 1) {
+    return ("min_val must be numeric and be a single value.")
+  }
+  
+  # function input: max_val numeric? single value (ex. no c(...))?
+  if (!is.numeric(max_val) || length(max_val) != 1) {
+    return ("max_val must be numeric and be a single value.")
+  }
+  
+  # sanity check: min_val must be less than max_val 
+  if (min_val > max_val) {
+    return ("min_val is greater than max_val. Invalid bounds.")
+  }
+  
+  case_when(
+    vec < min_val ~ NA_real_,
+    vec > max_val ~ NA_real_,
+    TRUE ~ vec
+  )
+  
+}
 
 ```
 
@@ -693,6 +914,21 @@ ca_childcare <- ca_childcare |>
 
 ```{r}
 #| label: r-3-function-stops
+
+# LAB 7: Q5 [REVISED]
+# uses the stop() function to stop execution for bad inputs 
+rescale_01 <- function(vec) {
+  # check if input vector is numeric 
+  if (!is.numeric(vec)) {
+    stop("Input vector needs to be numeric")
+  }
+  # check if length of input vector is greater than one 
+  if (length(vec) <= 1) {
+    stop("Length of input vector needs to be greater than 1")
+  }
+  (vec - min(vec, na.rm = TRUE)) /
+  (max(vec, na.rm = TRUE) - min(vec, na.rm = TRUE))
+}
 
 ```
 
@@ -705,18 +941,75 @@ ca_childcare <- ca_childcare |>
 ```{r}
 #| label: dvs-1-num
 
-# LAB 2: Q4-8
-# RECIEVED SUCCESS: visualizes weight vs hindfoot_length 
-ggplot(data = surveys,
-      aes(x = weight, y = hindfoot_length)) + 
-      geom_point(alpha = 0.4) + 
-      facet_wrap(~ species) + 
-      labs(
-        title = "Relationship between Rodent Weight and Rodent Hindfoot Length",
-        subtitle = "Hindfoot Length (millimeters)",
-        x = "Weight (grams)", 
-        y = ""
-      )
+# LAB 10: Q13
+# visualizes conf.low, conf.high, and estimate
+# recieved a comment 'This is a great plot!'
+set.seed(123)
+
+# get a sample of 100 rows and add indexing
+plot_sample <- bind_rows(ci_dat) |>
+  slice_sample(n = 100) |>
+  mutate(idx = row_number())
+
+ggplot(plot_sample) +
+# CI segments
+geom_segment(
+  aes(
+    x = conf.low, 
+    xend = conf.high, 
+    y = idx, 
+    yend = idx,
+    color = factor(cover)
+  ), 
+  linewidth = 0.4 
+) +
+# label slope estimate 
+geom_point(
+  aes(
+    x = estimate, 
+    y = idx, 
+    color = factor(cover)
+  ), 
+  size = 1.1
+) + 
+# show vertical line at true slope 
+geom_vline(
+  xintercept = 0.5, 
+  linetype = "dashed", 
+  linewidth = 0.7, 
+  color = "black",
+) + 
+# styling 
+scale_color_manual(
+  values = c(
+    "1" = "#6ABB90",
+    "0" = "#D85A5A"
+  ), 
+  labels = c(
+    "CI contains True Slope", 
+    "CI misses True Slope",
+    name = ""
+  )
+) + 
+labs(
+  title = "95% CI for 100 Simulated Slope Estimates", 
+  subtitle = "Red Intervals: true population slope not included in CI (Beta1 = 0.5)",
+  x = "Slope Estimate and CI", 
+  y = "" 
+) +
+theme_minimal(base_size = 14) + 
+theme(
+  legend.position = "bottom", 
+  plot.title = element_text(
+    face = "bold", 
+    size = 16
+  ), 
+  plot.subtitle = element_text(
+    size = 12
+  ), 
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank()
+)
 
 ```
 
@@ -725,27 +1018,63 @@ ggplot(data = surveys,
 ```{r}
 #| label: dvs-2-num-cat
 
-# CHALLENGE 2
-# RECIEVED SUCCESS: compares numeric weights across categorical species using a boxplot
-ggplot(data = surveys, 
-      aes(x = species, y = weight, fill = sex)) + 
-      geom_boxplot(outlier.shape = NA) + 
-      scale_fill_viridis_d(option = "C", begin = 0.2, end = 0.8) +
-      labs(
-        title = "Boxplots of the Distribution of Rodent Weight and Rodent Species", 
-        subtitle = "Sex: <span style='color:#440154;'>Male</span> | <span style='color:#440154;'>Female</span>",
-        x = "Species", 
-        y = "Weight (grams)", 
-        fill = NULL
-      ) + 
-      theme_minimal(base_size = 12) + 
-      theme(
-        legend.position = "none",
-        plot.subtitle = element_markdown(size = 11),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(face = "bold", size = 14)
-      )
+# LAB 10: Q3
+# visualizes number of babies correctly returned (categorical-- 0, 1, 2, 3, 4) 
+# and the proportion of simulations with that outcome (numeric)
+results |>
+  # convert vector to df 
+  enframe(
+    name = NULL, 
+    value = "correct"
+  ) |> 
+  # get number of simulations with 0-4 correctly returned babies 
+  count(
+    correct, 
+    name = "simulations"
+  ) |> 
+  # create column with proportion of simulations with correctly returned babies
+  mutate(
+    prop = simulations / sum(simulations)
+  ) |> 
+  # plot correct vs proportion
+  ggplot(
+    aes(
+      x = factor(correct), 
+      y = prop
+    )
+  ) + 
+  geom_col(
+    fill = "#C8F3E0", 
+    color = "#A3DCC6", 
+    width = 0.7
+  ) + 
+  scale_y_continuous(
+    labels = label_percent(accuracy = 1)
+  ) + 
+  labs(
+    title = "Dist. of Correctly Returned Babies \nAcross 10k Randomized Hospital Nights", 
+    x = "# of Correctly Returned Babies", 
+    y = "Proportion of Simulations" 
+  ) + 
+  theme_minimal(
+    base_size = 13,
+  ) + 
+  theme(
+    plot.title = element_text(
+      face = "bold", 
+      size = 18, 
+      color = "black"
+    ), 
+    axis.title = element_text(
+      size = 14,
+      color = "black"
+    ),
+    axis.text = element_text(
+      size = 12,
+      color = "black"
+    )
+  )
+
 
 ```
 
@@ -754,18 +1083,87 @@ ggplot(data = surveys,
 ```{r}
 #| label: dvs-2-cat
 
-# PA 2: Q6
-# grouped patterns using facets
-ggplot(
-  data = penguins, 
-  mapping = aes(
-    x = bill_length_mm, 
-    y = bill_depth_mm, 
-    color = species
-    )) + 
-  geom_point() + 
-  geom_smooth() + 
-  facet_wrap(vars(island))
+# LAB 9: Q6
+# visualizes counts and percentages of academic degree, seniority, and sex values
+# grouped row headers, spanner labels, percent formatting, styling
+bind_rows(academic_degree_rows, seniority_rows, sex_rows) |>
+  # group rows
+  gt(
+    groupname_col = "variable"
+  ) |> 
+  # row group title 
+  tab_header(
+    title = "Professor Demographics", 
+    subtitle = "Uni. of Poland, Warsaw Student Evaluations (2020)"
+  ) |>
+  # nicer column names
+  cols_label(
+    level = "Demographic",
+    n = "Count", 
+    prop = "%"
+  ) |>
+  # header that spans count and % columns
+  tab_spanner(
+    label = "Professor",  
+    columns = c(n, prop)
+  ) |>
+  # formatted % column 
+  fmt_percent(
+    columns = prop, 
+    decimals = 2
+  ) |>
+  # styling
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Poppins"),
+      ),
+      cell_fill(
+        color = "white"
+      )
+    ),
+    locations = cells_body()
+  ) |> 
+  tab_style(
+    style = cell_text(
+      font = google_font("Poppins"),
+      weight = "bold"
+    ),
+    locations = list(
+      cells_column_labels(columns = level),
+      cells_column_spanners(spanners = "Professor"),
+      cells_title()
+    )
+  ) |>
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Poppins"),
+        weight = "bold"
+      ),
+      cell_fill(
+        color = "#C8E8C8"
+      )
+    ),
+    locations = cells_column_labels(columns = c(n, prop))
+  ) |>
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Poppins"),
+        weight = "bold"
+      ),
+      cell_fill(
+        color = "#DFF5E3"
+      )
+    ),
+    locations = cells_row_groups()
+  ) |>
+  cols_align(
+    align = "center",
+    columns = c(n, prop)
+  ) |>
+  opt_table_lines() 
 
 ```
 
@@ -773,6 +1171,50 @@ ggplot(
 
 ```{r}
 #| label: dvs-2-date
+
+# CHALLENGE 7: Q5
+# plots fish conditional index over time, grouped by species
+# recieved 'above and beyond'
+fish |> 
+  # create column for condition index
+  mutate(
+    cond_idx = get_condition_idx(weight, length)
+  ) |>
+  # get year-species combinations
+  group_by(year, species) |> 
+  summarize(
+    mean_cond_idx = mean(cond_idx, na.rm = TRUE), 
+    standard_deviation_cond_idx = sd(cond_idx, na.rm = TRUE),
+    .groups = "drop"
+  ) |> 
+  # create plot: year vs mean condition index, species encoded by color 
+  ggplot(
+    aes(
+      x = year, 
+      y = mean_cond_idx, 
+      color = species
+    )
+  ) +
+  geom_line(linewidth = 1) + 
+  geom_point(size = 2) +
+  geom_errorbar(
+    aes(
+      ymin = mean_cond_idx - standard_deviation_cond_idx, 
+      ymax = mean_cond_idx + standard_deviation_cond_idx
+    ),
+    width = 0.3
+  ) + 
+  labs(
+    title = "Avg. Fish Condition Index by Species Over Time", 
+    x = "Year", 
+    y = "Condition Index (g/cm³, scaled *100)",
+    color = "Species"
+  ) + 
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(face = "bold", size = 15),
+    legend.position = "bottom"
+  )
 
 ```
 
@@ -783,32 +1225,78 @@ ggplot(
 ```{r}
 #| label: dvs-2-ex-1
 
-# LAB 4: Q7
-# GROWING COMMENT: reorder colors in legend to appear in same order as lines in plot
-# REVISION FOR SUCCESS: use fct_reorder2() to automatically reorder legend. Clearly labelled plot with theme adjustments and color mapping. Also applied theme adjustments to improve readability. 
-ggplot(
-  data = weekly_median_price,
+# LAB 10: Q13
+# uses theme_minimal with customized size
+# simplified plot background 
+# removed y axis labels and ticks to declutter 
+# text styling + color customizations 
+# recieved a comment 'This is a great plot!'
+set.seed(123)
+
+# get a sample of 100 rows and add indexing
+plot_sample <- bind_rows(ci_dat) |>
+  slice_sample(n = 100) |>
+  mutate(idx = row_number())
+
+ggplot(plot_sample) +
+# CI segments
+geom_segment(
   aes(
-    x = study_year,
-    y = median_weekly_price, 
-    color = fct_reorder2(region, study_year, median_weekly_price), 
-  )) + 
-  geom_point(alpha = 0.5) + 
-  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
-  facet_wrap(~ age_group, ncol = 3) + 
-  labs(
-    title = "Weekly Median Price for Center Based Childcare ($)",
-    x = "Study Year",
-    y = "",
-    color = "California Region"
-  ) + 
-  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
-  theme_minimal(base_size = 12) + 
-  theme(
-    strip.background = element_rect(
-      fill = "gray",
-    )
+    x = conf.low, 
+    xend = conf.high, 
+    y = idx, 
+    yend = idx,
+    color = factor(cover)
+  ), 
+  linewidth = 0.4 
+) +
+# label slope estimate 
+geom_point(
+  aes(
+    x = estimate, 
+    y = idx, 
+    color = factor(cover)
+  ), 
+  size = 1.1
+) + 
+# show vertical line at true slope 
+geom_vline(
+  xintercept = 0.5, 
+  linetype = "dashed", 
+  linewidth = 0.7, 
+  color = "black",
+) + 
+# styling 
+scale_color_manual(
+  values = c(
+    "1" = "#6ABB90",
+    "0" = "#D85A5A"
+  ), 
+  labels = c(
+    "CI contains True Slope", 
+    "CI misses True Slope",
+    name = ""
   )
+) + 
+labs(
+  title = "95% CI for 100 Simulated Slope Estimates", 
+  subtitle = "Red Intervals: true population slope not included in CI (Beta1 = 0.5)",
+  x = "Slope Estimate and CI", 
+  y = "" 
+) +
+theme_minimal(base_size = 14) + 
+theme(
+  legend.position = "bottom", 
+  plot.title = element_text(
+    face = "bold", 
+    size = 16
+  ), 
+  plot.subtitle = element_text(
+    size = 12
+  ), 
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank()
+)
 
 ```
 
@@ -817,31 +1305,40 @@ ggplot(
 ```{r}
 #| label: dvs-2-ex-2
 
-# LAB 4: Q7
-# color customizations using colorRampPalette
-ggplot(
-  data = weekly_median_price,
-  aes(
-    x = study_year,
-    y = median_weekly_price, 
-    color = fct_reorder2(region, study_year, median_weekly_price), 
-  )) + 
-  geom_point(alpha = 0.5) + 
-  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
-  facet_wrap(~ age_group, ncol = 3) + 
-  labs(
-    title = "Weekly Median Price for Center Based Childcare ($)",
-    x = "Study Year",
-    y = "",
-    color = "California Region"
-  ) + 
-  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
-  theme_minimal(base_size = 12) + 
-  theme(
-    strip.background = element_rect(
-      fill = "gray",
-    )
-  )
+# LAB 8: Q4 + Test
+# uses a color blind safe palette (RColorBrewer::brewer.pal 'Paired')
+style_plot <- function(
+      plot, 
+      theme_fn = theme_minimal, 
+      palette = RColorBrewer::brewer.pal(8, "Set2"), 
+      aesthetic
+    ) {
+      # validate aesthetic 
+      if (!aesthetic %in% c("color", "fill")) {
+        return("Aesthetic must be either 'color' or 'fill'")
+      }
+      # apply color palette 
+      create_plot <- plot + 
+        {
+          if (aesthetic == "color") {
+            scale_color_manual(values = palette)
+          } else if (aesthetic == "fill") {
+            scale_fill_manual(values = palette)
+          }
+        } + 
+        # apply theme 
+        theme_fn(base_size = 12) 
+      
+      return(create_plot)
+}
+
+my_plot <- ggplot(penguins, mapping = aes(x = species, fill = sex)) + 
+  geom_bar()
+
+style_plot(my_plot, 
+           theme_fn = theme_bw, 
+           palette = brewer.pal(3, "Paired"), 
+           aesthetic = "fill")
 
 ```
 
@@ -850,19 +1347,62 @@ ggplot(
 ```{r}
 #| label: dvs-2-ex-3
 
-# LAB 2: Q10-15 [REVISED]
-# RECIEVED SUCCESS: descriptive titles/ subtitles for context
-ggplot(data = surveys, 
-      aes(x = species, y = weight)) + 
-      geom_boxplot(outlier.shape = NA) + 
-      geom_jitter(color = "steelblue", alpha = 0.4) + 
-      labs(
-        title = "Boxplots of the Distribution of Rodent Weight By Species in the Portal Project",
-        subtitle = "Data from ecological study near Portal, AZ",
-        x = "Species", 
-        y = "Weight (grams)"
-      ) + 
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# LAB 10: Q3
+# title clearly states what is being simulated 
+# includes quantitative context
+results |>
+  # convert vector to df 
+  enframe(
+    name = NULL, 
+    value = "correct"
+  ) |> 
+  # get number of simulations with 0-4 correctly returned babies 
+  count(
+    correct, 
+    name = "simulations"
+  ) |> 
+  # create column with proportion of simulations with correctly returned babies
+  mutate(
+    prop = simulations / sum(simulations)
+  ) |> 
+  # plot correct vs proportion
+  ggplot(
+    aes(
+      x = factor(correct), 
+      y = prop
+    )
+  ) + 
+  geom_col(
+    fill = "#C8F3E0", 
+    color = "#A3DCC6", 
+    width = 0.7
+  ) + 
+  scale_y_continuous(
+    labels = label_percent(accuracy = 1)
+  ) + 
+  labs(
+    title = "Dist. of Correctly Returned Babies \nAcross 10k Randomized Hospital Nights", 
+    x = "# of Correctly Returned Babies", 
+    y = "Proportion of Simulations" 
+  ) + 
+  theme_minimal(
+    base_size = 13,
+  ) + 
+  theme(
+    plot.title = element_text(
+      face = "bold", 
+      size = 18, 
+      color = "black"
+    ), 
+    axis.title = element_text(
+      size = 14,
+      color = "black"
+    ),
+    axis.text = element_text(
+      size = 12,
+      color = "black"
+    )
+  )
 
 ```
 
@@ -871,19 +1411,78 @@ ggplot(data = surveys,
 ```{r}
 #| label: dvs-2-ex-4
 
-# LAB 2: Q10-15 [REVISED]
-# RECIEVED SUCCESS: rotates species label -> modifies x axis to prevent label overlap (easier to read)
-ggplot(data = surveys, 
-      aes(x = species, y = weight)) + 
-      geom_boxplot(outlier.shape = NA) + 
-      geom_jitter(color = "steelblue", alpha = 0.4) + 
-      labs(
-        title = "Boxplots of the Distribution of Rodent Weight By Species in the Portal Project",
-        subtitle = "Data from ecological study near Portal, AZ",
-        x = "Species", 
-        y = "Weight (grams)"
-      ) + 
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# LAB 8: Q3
+# better axis labels, 
+# converted variables to title case, 
+# replaced underscores with spaaces, 
+# custom title, 
+# styling 
+scatter_plotter <- function(df, var_x, var_y, var_color) {
+  # check input 
+  if (!is.data.frame(df)) {
+    return("This function requires df to be a data frame.")
+  }
+  # professional labels: convert var_x to string and replace _'s with spaces
+  x_label <- str_to_title(
+    str_replace_all(
+      as_label(
+        enquo(var_x)
+      ),
+      "_",
+      " "
+    )
+  )
+  y_label <- str_to_title(
+    str_replace_all(
+      as_label(
+        enquo(var_y)
+      ),
+      "_",
+      " "
+    )
+  )
+  color_encoding <- str_to_title(
+    str_replace_all(
+      as_label(
+        enquo(var_color)
+      ),
+      "_",
+      " "
+    )
+  )
+  # create scatter plot title
+  title_label <- rlang::englue(
+    "Relationship between { x_label } and { y_label }, \nacross levels of { color_encoding }."
+  )
+  # create scatter plot
+  df |> 
+    ggplot(
+      aes(
+        x = {{ var_x }}, 
+        y = {{ var_y }}, 
+        color = {{ var_color }}
+      )
+    ) + 
+    geom_point(size = 2, alpha = 0.6) + 
+    geom_smooth(method = "lm", se = FALSE, linewidth = 1) + 
+    labs(
+      title = title_label, 
+      x = x_label, 
+      y = y_label, 
+      color = color_encoding, 
+      caption = "Trend line represents a linear model fit" 
+    ) + 
+    theme_minimal() + 
+    theme(
+      plot.title = element_text(face = "bold", size = 13, hjust = 0.5),
+      axis.title.x = element_text(face = "bold", size = 10), 
+      axis.title.y = element_text(face = "bold", size = 10),
+      legend.title = element_text(face = "bold", size = 10),
+      legend.text = element_text(size = 9),
+      plot.caption = element_text(size = 9, hjust = 0),
+    )
+}
+scatter_plotter(penguins, flipper_length_mm, body_mass_g, species)
 
 ```
 
@@ -957,31 +1556,39 @@ ggplot(data = surveys,
 ```{r}
 #| label: dvs-3-1-ex-2
 
-# LAB 4: Q7
-# custom colorRampPalette colors
-ggplot(
-  data = weekly_median_price,
-  aes(
-    x = study_year,
-    y = median_weekly_price, 
-    color = fct_reorder2(region, study_year, median_weekly_price), 
-  )) + 
-  geom_point(alpha = 0.5) + 
-  geom_smooth(method = "loess", se = TRUE, linewidth = 0.8) +
-  facet_wrap(~ age_group, ncol = 3) + 
-  labs(
-    title = "Weekly Median Price for Center Based Childcare ($)",
-    x = "Study Year",
-    y = "",
-    color = "California Region"
-  ) + 
-  scale_color_manual(values = colorRampPalette(brewer_pal(palette = "Paired")(10))(10)) +
-  theme_minimal(base_size = 12) + 
-  theme(
-    strip.background = element_rect(
-      fill = "gray",
-    )
-  )
+# LAB 8: Q4 + Test 
+# used the Dark2 palette from RColorBrewer
+style_plot <- function(
+      plot, 
+      theme_fn = theme_minimal, 
+      palette = RColorBrewer::brewer.pal(8, "Set2"), 
+      aesthetic
+    ) {
+      # validate aesthetic 
+      if (!aesthetic %in% c("color", "fill")) {
+        return("Aesthetic must be either 'color' or 'fill'")
+      }
+      # apply color palette 
+      create_plot <- plot + 
+        {
+          if (aesthetic == "color") {
+            scale_color_manual(values = palette)
+          } else if (aesthetic == "fill") {
+            scale_fill_manual(values = palette)
+          }
+        } + 
+        # apply theme 
+        theme_fn(base_size = 12) 
+      
+      return(create_plot)
+    }
+  
+style_plot(
+  scatter_plotter(penguins, flipper_length_mm, body_mass_g, species), 
+  theme_fn = theme_light, 
+  palette = RColorBrewer::brewer.pal(3, "Dark2"),
+  aesthetic = "color"
+) 
 
 ```
 
@@ -990,12 +1597,127 @@ ggplot(
 ```{r}
 #| label: dvs-3-2
 
+# CHALLENGE 4: Q3 [REVISED
+# originally did not include annotations 
+# revised to include value labels for each bar for eash comparison between cost gaps
+plot_summary_stats_2018 <- summary_stats_2018 |>
+  select(region, median_center_based, median_family_based, median_income) |>
+  pivot_longer(
+    cols = c(median_center_based, median_family_based),
+    names_to = "setting_type",
+    values_to = "median_weekly_cost"
+  ) |>
+  mutate(
+    setting_type = recode(
+      setting_type, 
+      median_center_based = "Center Based",
+      median_family_based = "Family Based"
+    )
+  )
+
+ggplot(
+  data = plot_summary_stats_2018, 
+  aes(
+    x = reorder(region, median_income),
+    y = median_weekly_cost, 
+    fill = setting_type
+  )
+) + 
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(
+    aes(label = round(median_weekly_cost, 0)),
+    position = position_dodge(width = 0.9),
+    hjust = -0.1,
+    size = 2.5
+  ) +
+  coord_flip() + 
+  scale_fill_manual(values = c(
+    "Center Based" = "#2b8cbe",
+    "Family Based"   = "#41ae76"
+  )) + 
+  labs(
+    title = "2018 Median Weekly Childcare Costs for Infants by Region and Setting",
+    x = "California Region (ordered by median household income)", 
+    y = "Median Weekly Cost ($)", 
+    fill = "Setting Type"
+  ) +
+  theme_minimal()
+
 ```
 
 -   I can choose creative geometries (e.g., `geom_segment()`, `geom_ribbon)()`)
 
 ```{r}
 #| label: dvs-3-3
+
+# LAB 10: Q13
+# used geom_segment() 
+set.seed(123)
+
+# get a sample of 100 rows and add indexing
+plot_sample <- bind_rows(ci_dat) |>
+  slice_sample(n = 100) |>
+  mutate(idx = row_number())
+
+ggplot(plot_sample) +
+# CI segments
+geom_segment(
+  aes(
+    x = conf.low, 
+    xend = conf.high, 
+    y = idx, 
+    yend = idx,
+    color = factor(cover)
+  ), 
+  linewidth = 0.4 
+) +
+# label slope estimate 
+geom_point(
+  aes(
+    x = estimate, 
+    y = idx, 
+    color = factor(cover)
+  ), 
+  size = 1.1
+) + 
+# show vertical line at true slope 
+geom_vline(
+  xintercept = 0.5, 
+  linetype = "dashed", 
+  linewidth = 0.7, 
+  color = "black",
+) + 
+# styling 
+scale_color_manual(
+  values = c(
+    "1" = "#6ABB90",
+    "0" = "#D85A5A"
+  ), 
+  labels = c(
+    "CI contains True Slope", 
+    "CI misses True Slope",
+    name = ""
+  )
+) + 
+labs(
+  title = "95% CI for 100 Simulated Slope Estimates", 
+  subtitle = "Red Intervals: true population slope not included in CI (Beta1 = 0.5)",
+  x = "Slope Estimate and CI", 
+  y = "" 
+) +
+theme_minimal(base_size = 14) + 
+theme(
+  legend.position = "bottom", 
+  plot.title = element_text(
+    face = "bold", 
+    size = 16
+  ), 
+  plot.subtitle = element_text(
+    size = 12
+  ), 
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank()
+)
 
 ```
 
@@ -1006,13 +1728,37 @@ ggplot(
 ```{r}
 #| label: dvs-4-summarize
 
-# LAB 4: Q6
-# RECIEVED SUCCESS: calculates group medians using summarize()
-median_infant_cb <- ca_childcare |>
-  filter(study_year == 2018) |>
-  group_by(region) |>
-  summarize(median_infant_price = median(mc_infant, na.rm = TRUE)) |>
-  arrange(median_infant_price)
+# LAB 7: Q3
+# grouping by year, section, and trip_label and use summarize() to compute 
+# count of missing weights in each group 
+fish |> 
+  # get observations with missing values for weight
+  filter(is.na(weight)) |>
+  # create better label for trips
+  mutate(trip_label = paste("Trip:", trip)) |>
+  group_by(year, section, trip_label) |>
+  # counts missing weights for year, section, trip combinations
+  summarise(num_missing = n(), .groups = "drop") |>
+  ggplot(
+    aes(
+      x = factor(year), 
+      y = num_missing, 
+      fill = section
+    )
+  ) + 
+  geom_col(position = "dodge") +
+  facet_wrap(~ trip_label) + 
+  labs(
+    title = "Frequency of Missing Weight Values Across Years, Sections, and Trips",
+    x = "Year",
+    y = "Number of Missing Weight Value Observations",
+    fill = "Section"
+  ) + 
+  theme_minimal() + 
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(face = "bold", size = 15)
+  )
 
 ```
 
@@ -1021,15 +1767,29 @@ median_infant_cb <- ca_childcare |>
 ```{r}
 #| label: dvs-4-across
 
-# LAB 3: Q5
-# RECIEVED SUCCESS: uses across() to apply transformations over multiple variables
-teacher_evals_clean <- teacher_evals |>
-  rename(sex = gender) |>
-  filter(no_participants >= 10) |>
-  mutate(across(c(course_id, teacher_id), as.character)) |>
-  select(
-    course_id, teacher_id, question_no, no_participants, resp_share, SET_score_avg, percent_failed_cur, academic_degree, seniority, sex
-  )
+# LAB 7: Q1
+# compute count of missing values for every variable
+missing_values <- fish |> 
+  # count na values in every column
+  summarize(
+    across(
+      .cols = everything(),
+      .fns = ~sum(is.na(.)),
+      .names = "{.col}"
+    )
+  ) |>
+  # reshape summary into two columns: variable and num_missing
+  # variable-- column with missing values 
+  # num_missing-- number of missing values present in column
+  pivot_longer(
+    cols = everything(),
+    names_to = "variable",
+    values_to = "num_missing"
+  ) |>
+  # find variables with missing values and filter
+  mutate(has_missing_val = num_missing > 0) 
+
+missing_values
 
 ```
 
@@ -1068,7 +1828,7 @@ median_income_region <- ca_childcare |>
 
 # CHALLENGE 4: Q2
 # summarizes childcare stats across regions 
-weeks_in_year <- 52
+weeks_in_year <- 52 
 
 summary_stats_2018 <- ca_childcare |>
   filter(study_year == 2018) |> 
@@ -1095,24 +1855,86 @@ summary_stats_2018 <- ca_childcare |>
 ```{r}
 #| label: dvs-6-ex-1
 
-# LAB 4: Q5
-# renamed columns to clarify table context
-median_income_region <- ca_childcare |>
-  filter(study_year %in% c(2008, 2018)) |>
-  group_by(region, study_year) |>
-  summarize(median_income = median(mhi_2018, na.rm = TRUE)) |>
-  ungroup() |>
-  pivot_wider(
-    names_from = study_year, 
-    values_from = median_income,
-    names_prefix = "Income_"
+# LAB 9: Q6
+# more readable labels that communicate what each column represents in context 
+bind_rows(academic_degree_rows, seniority_rows, sex_rows) |>
+  # group rows
+  gt(
+    groupname_col = "variable"
+  ) |> 
+  # row group title 
+  tab_header(
+    title = "Professor Demographics", 
+    subtitle = "Uni. of Poland, Warsaw Student Evaluations (2020)"
   ) |>
-  arrange(desc(Income_2018)) |>
-  rename(
-    Region = region,
-    "2008 Median Income ($)" = Income_2008,
-    "2018 Median Income ($)" = Income_2018
-  )
+  # nicer column names
+  cols_label(
+    level = "Demographic",
+    n = "Count", 
+    prop = "%"
+  ) |>
+  # header that spans count and % columns
+  tab_spanner(
+    label = "Professor",  
+    columns = c(n, prop)
+  ) |>
+  # formatted % column 
+  fmt_percent(
+    columns = prop, 
+    decimals = 2
+  ) |>
+  # styling
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Poppins"),
+      ),
+      cell_fill(
+        color = "white"
+      )
+    ),
+    locations = cells_body()
+  ) |> 
+  tab_style(
+    style = cell_text(
+      font = google_font("Poppins"),
+      weight = "bold"
+    ),
+    locations = list(
+      cells_column_labels(columns = level),
+      cells_column_spanners(spanners = "Professor"),
+      cells_title()
+    )
+  ) |>
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Poppins"),
+        weight = "bold"
+      ),
+      cell_fill(
+        color = "#C8E8C8"
+      )
+    ),
+    locations = cells_column_labels(columns = c(n, prop))
+  ) |>
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Poppins"),
+        weight = "bold"
+      ),
+      cell_fill(
+        color = "#DFF5E3"
+      )
+    ),
+    locations = cells_row_groups()
+  ) |>
+  cols_align(
+    align = "center",
+    columns = c(n, prop)
+  ) |>
+  opt_table_lines() 
 
 ```
 
@@ -1121,12 +1943,118 @@ median_income_region <- ca_childcare |>
 ```{r}
 #| label: dvs-6-ex-2
 
+# LAB 9: Q3
+# modified text font and applied alternating row background colors for readability
+surveys |>
+  # get data type of each variable 
+  map_chr(typeof) |> 
+  # name columns 
+  enframe(
+    name = "Variable", 
+    value = "Data Type"
+  ) |> 
+  # order rows
+  arrange(Variable) |>
+  # display using gt()
+  gt() |> 
+  # include header
+  tab_header(
+    title = "Surveys Dataset: Variable Data Types"
+  ) |>
+  # styling for title 
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Poppins"),
+        color = "white", 
+        weight = "bold"
+      ), 
+      cell_fill(color = "#F2A2B8")
+    ), 
+    locations = cells_title("title")
+  ) |>
+  # styling for columns 
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Poppins"), 
+        color = "white", 
+        weight = "bold"
+      ), 
+      cell_fill(color = "#F8D0E0")
+    ),
+    locations = cells_column_labels()
+  ) |>
+  opt_table_lines() |>
+  opt_align_table_header(align = "center")
+
 ```
 
 -   I can arrange my table to have an intuitive ordering
 
 ```{r}
 #| label: dvs-6-ex-3
+
+# LAB 9: Q8
+# sorts variables from fewest missing values to most 
+fish |> 
+  # count missing values for each variable
+  map_int(~ sum(is.na(.))) |> 
+  enframe(
+    name = "Measurement Variable", 
+    value = "Number of Missing Values"
+  ) |>
+  # arrange rows 
+  arrange(`Number of Missing Values`) |>
+  # display using gt()
+  gt() |>
+  # header 
+  tab_header(
+    title = "Frequency of Missing Values for Fish Measurements", 
+    subtitle = "Data Source: Blackfoot Fish in Montana"
+  ) |>
+  tab_style(
+    style = cell_text(
+      font = google_font("Quicksand"),
+      weight = "bold"
+    ),
+    locations = cells_title()
+  ) |>
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Quicksand")
+      ),
+      cell_fill(
+        color = "white"
+      )
+    ),
+    locations = cells_body()
+  ) |>
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Quicksand"),
+        weight = "bold"
+      ),
+      cell_fill(
+        color = "#D4F0F7"
+      )
+    ),
+    locations = cells_column_labels()
+  ) |>
+  # color encoding --> green for 0 missing values, red otherwise
+  data_color(
+    columns = "Number of Missing Values", 
+    fn = function(num_missing) {
+      ifelse(
+        num_missing == 0, 
+        "#CDE8D7",  
+        "#F4A29E"
+      )
+    }
+  ) |>
+  opt_table_lines()
 
 ```
 
@@ -1137,28 +2065,67 @@ median_income_region <- ca_childcare |>
 ```{r}
 #| label: dvs-7-ex-1
 
-# CHALLENGE 4: Q3
-# uses non default colors
-ggplot(
-  data = plot_summary_stats_2018, 
-  aes(
-    x = reorder(region, median_income),
-    y = median_weekly_cost, 
-    fill = setting_type
-  )
-) + 
-  geom_col(position = "dodge") +
-  coord_flip() + 
-  scale_fill_manual(values = c(
-    "Center Based" = "#2b8cbe",
-    "Family Based" = "#41ae76"
-  )) + 
-  labs(
-    title = "2018 Median Weekly Childcare Costs for Infants by Region and Setting",
-    x = "California Region (ordered by median household income)", 
-    y = "Median Weekly Cost", 
-    fill = "Setting Type"
-  )
+# LAB 9: Q8
+# used non default colors column labels
+# and visual color encoding for values of missing values
+fish |> 
+  # count missing values for each variable
+  map_int(~ sum(is.na(.))) |> 
+  enframe(
+    name = "Measurement Variable", 
+    value = "Number of Missing Values"
+  ) |>
+  # arrange rows 
+  arrange(`Number of Missing Values`) |>
+  # display using gt()
+  gt() |>
+  # header 
+  tab_header(
+    title = "Frequency of Missing Values for Fish Measurements", 
+    subtitle = "Data Source: Blackfoot Fish in Montana"
+  ) |>
+  tab_style(
+    style = cell_text(
+      font = google_font("Quicksand"),
+      weight = "bold"
+    ),
+    locations = cells_title()
+  ) |>
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Quicksand")
+      ),
+      cell_fill(
+        color = "white"
+      )
+    ),
+    locations = cells_body()
+  ) |>
+  tab_style(
+    style = list(
+      cell_text(
+        font = google_font("Quicksand"),
+        weight = "bold"
+      ),
+      cell_fill(
+        color = "#D4F0F7"
+      )
+    ),
+    locations = cells_column_labels()
+  ) |>
+  # color encoding --> green for 0 missing values, red otherwise
+  data_color(
+    columns = "Number of Missing Values", 
+    fn = function(num_missing) {
+      ifelse(
+        num_missing == 0, 
+        "#CDE8D7",  
+        "#F4A29E"
+      )
+    }
+  ) |>
+  opt_table_lines() 
 
 ```
 
@@ -1184,7 +2151,7 @@ median_income_region <- ca_childcare |>
     Region = region,
     "2008 Median Income ($)" = Income_2008,
     "2018 Median Income ($)" = Income_2018
-  )
+  ) 
 
 ```
 
@@ -1211,7 +2178,7 @@ weekly_median_price <- ca_childcare |>
       mc_infant = "Infant", 
       mc_toddler = "Toddler", 
       mc_preschool = "Preschool"),
-    age_group = fct_relevel(age_group, "Infant", "Toddler", "Preschool"))
+    age_group = fct_relevel(age_group, "Infant", "Toddler", "Preschool")) 
 
 ```
 
@@ -1220,15 +2187,18 @@ weekly_median_price <- ca_childcare |>
 ```{r}
 #| label: pe-1-across
 
-# LAB 3: Q5
-# uses across() to simplify reptitive code  
-teacher_evals_clean <- teacher_evals |>
-  rename(sex = gender) |>
-  filter(no_participants >= 10) |>
-  mutate(across(c(course_id, teacher_id), as.character)) |>
-  select(
-    course_id, teacher_id, question_no, no_participants, resp_share, SET_score_avg, percent_failed_cur, academic_degree, seniority, sex
-  )
+# LAB 8: Q1
+# avoided repeated function calls rescale_01() for each column 
+rescale_column <- function(df, cols) {
+  df |> 
+    # apply transformation on each column in cols specified 
+    mutate(
+      across(
+        .cols = {{ cols }}, 
+        .fns = rescale_01
+      )
+    )
+}
 
 ```
 
@@ -1236,6 +2206,19 @@ teacher_evals_clean <- teacher_evals |>
 
 ```{r}
 #| label: pe-1-map-1
+
+# LAB 9: Q2
+# used map_chr() to get typeof applied to every column 
+surveys |>
+  # get data type of each variable
+  map_chr(typeof) |> 
+  # name columns
+  enframe(
+    name = "Variable", 
+    value = "Data Type"
+  ) |>
+  # displaying using kable()
+  kable()
 
 ```
 
@@ -1246,6 +2229,21 @@ teacher_evals_clean <- teacher_evals |>
 ```{r}
 #| label: pe-2-1
 
+# LAB 7: Q4
+# rescales a numeric vector 
+rescale_01 <- function(vec) {
+  # check if input vector is numeric 
+  if (!is.numeric(vec)) {
+    return("Input vector needs to be numeric")
+  }
+  # check if length of input vector is greater than one 
+  if (length(vec) <= 1) {
+    return("Length of input vector needs to be greater than 1")
+  }
+  (vec - min(vec, na.rm = TRUE)) /
+  (max(vec, na.rm = TRUE) - min(vec, na.rm = TRUE))
+}
+
 ```
 
 -   Example 2: Function that operates on data frames
@@ -1253,12 +2251,93 @@ teacher_evals_clean <- teacher_evals |>
 ```{r}
 #| label: pe-2-2
 
+# LAB 8: Q1
+# transforms columns in a dataframe 
+rescale_column <- function(df, cols) {
+  df |> 
+    # apply transformation on each column in cols specified 
+    mutate(
+      across(
+        .cols = {{ cols }}, 
+        .fns = rescale_01
+      )
+    )
+}
+
 ```
 
 -   Example 3: Function that operates on vectors *or* data frames
 
 ```{r}
 #| label: pe-2-3
+
+# LAB 8: Q3
+# takes a dataframe, column names, and a color theme and creates a scatter plot 
+scatter_plotter <- function(df, var_x, var_y, var_color) {
+  # check input 
+  if (!is.data.frame(df)) {
+    return("This function requires df to be a data frame.")
+  }
+  # professional labels: convert var_x to string and replace _'s with spaces
+  x_label <- str_to_title(
+    str_replace_all(
+      as_label(
+        enquo(var_x)
+      ),
+      "_",
+      " "
+    )
+  )
+  y_label <- str_to_title(
+    str_replace_all(
+      as_label(
+        enquo(var_y)
+      ),
+      "_",
+      " "
+    )
+  )
+  color_encoding <- str_to_title(
+    str_replace_all(
+      as_label(
+        enquo(var_color)
+      ),
+      "_",
+      " "
+    )
+  )
+  # create scatter plot title
+  title_label <- rlang::englue(
+    "Relationship between { x_label } and { y_label }, \nacross levels of { color_encoding }."
+  )
+  # create scatter plot
+  df |> 
+    ggplot(
+      aes(
+        x = {{ var_x }}, 
+        y = {{ var_y }}, 
+        color = {{ var_color }}
+      )
+    ) + 
+    geom_point(size = 2, alpha = 0.6) + 
+    geom_smooth(method = "lm", se = FALSE, linewidth = 1) + 
+    labs(
+      title = title_label, 
+      x = x_label, 
+      y = y_label, 
+      color = color_encoding, 
+      caption = "Trend line represents a linear model fit" 
+    ) + 
+    theme_minimal() + 
+    theme(
+      plot.title = element_text(face = "bold", size = 13, hjust = 0.5),
+      axis.title.x = element_text(face = "bold", size = 10), 
+      axis.title.y = element_text(face = "bold", size = 10),
+      legend.title = element_text(face = "bold", size = 10),
+      legend.text = element_text(size = 9),
+      plot.caption = element_text(size = 9, hjust = 0),
+    )
+}
 
 ```
 
@@ -1269,6 +2348,19 @@ teacher_evals_clean <- teacher_evals |>
 ```{r}
 #| label: pe-3-across
 
+# LAB 8: Q1
+# used across() to iterate over columns to apply rescale_01
+rescale_column <- function(df, cols) {
+  df |> 
+    # apply transformation on each column in cols specified 
+    mutate(
+      across(
+        .cols = {{ cols }}, 
+        .fns = rescale_01
+      )
+    )
+}
+
 ```
 
 -   using a `map()` function with **one** input (e.g., `map()`, `map_chr()`, `map_dbl()`, etc.)
@@ -1276,12 +2368,44 @@ teacher_evals_clean <- teacher_evals |>
 ```{r}
 #| label: pe-3-map-1
 
+# LAB 9: Q7
+# uses map_int() to iterate over columns and calculate number of missing values 
+fish |> 
+  # count missing values for each variable
+  map_int(~ sum(is.na(.))) |> 
+  enframe(
+    name = "Variable", 
+    value = "Number Missing"
+  ) |>
+  kable() |>
+  kable_styling(
+    full_width = FALSE, 
+    bootstrap_options = "striped"
+  )
+
 ```
 
 -   using a `map()` function with **more than one** input (e.g., `map_2()` or `pmap()`)
 
 ```{r}
 #| label: pe-3-map-2
+
+# LAB 9: Q4
+# uses map_at() to apply as.factor() to the specified columns 
+evals |>
+  # convert specified columns into factors 
+  map_at(
+    .at = c(
+      "course_id",
+      "weekday",
+      "academic_degree",
+      "time_of_day",
+      "sex"
+    ),
+    .f = as.factor
+  ) |>
+  # transform list output into df
+  bind_cols()
 
 ```
 
@@ -1292,30 +2416,30 @@ teacher_evals_clean <- teacher_evals |>
 ```{r}
 #| label: pe-4-1
 
-# LAB 5: Inspect Gold Members and Match License
-# uses current tidyverse syntax 
-get_fit_now_member |>
-  filter(
-    membership_status == "gold",
-    str_detect(
-      id,
-      "^48Z"
+# LAB 7: Q1
+# uses across() and mutate() which are functions that are not superseded 
+# and are tidyverse reccomended 
+missing_values <- fish |> 
+  # count na values in every column
+  summarize(
+    across(
+      .cols = everything(),
+      .fns = ~sum(is.na(.)),
+      .names = "{.col}"
     )
   ) |>
-  inner_join(
-    person,
-    by = c("person_id" = "id")
+  # reshape summary into two columns: variable and num_missing
+  # variable-- column with missing values 
+  # num_missing-- number of missing values present in column
+  pivot_longer(
+    cols = everything(),
+    names_to = "variable",
+    values_to = "num_missing"
   ) |>
-  inner_join(
-    drivers_license,
-    by = c("license_id" = "id")
-  ) |>
-  filter(
-    str_detect(
-      plate_number, 
-      "H42W"
-    )
-  )
+  # find variables with missing values and filter
+  mutate(has_missing_val = num_missing > 0) 
+
+missing_values
 
 ```
 
@@ -1363,7 +2487,7 @@ ca_childcare |>
     strip.background = element_rect(
       fill = "gray",
     )
-  )
+  ) 
 
 ```
 
@@ -1376,12 +2500,100 @@ ca_childcare |>
 ```{r}
 #| label: dsm-1-1
 
+# LAB 10: Q4
+# simulates two different probability distributions using runif() and rnorm()
+# these distributions are then combined into a linear model 
+# define slope and intercept parameters
+intercept <- 2
+slope <- 1
+
+# generate 100 values of x from uniform dist. 
+x <- runif(
+  n = 100, 
+  min = 0, 
+  max = 1
+)
+
+# generate 100 values of random noise from normal dist. 
+ep <- rnorm(
+  n = 100, 
+  mean = 0, 
+  sd = 1
+)
+
+# generate outcome from population model
+y <- intercept + (slope * x) + ep
+
+# create an "observed data" dataframe with only the x and y vectors
+df <- tibble(
+  x = x, 
+  y = y
+)
+
 ```
 
 -   Example 2
 
 ```{r}
 #| label: dsm-1-2
+
+# LAB 10: Q8 + Q9
+# function to repeatedly simulate new datasets
+mycifun <- function(beta0, beta1, n) {
+
+  # get x values from uniform dist. 
+  x <- runif(
+    n, 
+    min = 0, 
+    max = 1
+  )
+  
+  # get random error from normal dist.
+  ep <- rnorm(
+    n, 
+    mean = 0, 
+    sd = 1
+  )
+  
+  # get y based on population model 
+  y <- beta0 + (beta1 * x) + ep
+  
+  # extract df
+  df <- tibble(
+   x = x, 
+   y = y
+  )
+  
+  # fit regression model 
+  lm(
+    formula = (y ~ x),
+    data = df
+  ) |> 
+  # get slope estimate and 95% CI 
+  tidy(
+    conf.int = TRUE, 
+    conf.level = 0.95
+  ) |>
+  # only return wanted values 
+  filter(
+    term == "x"
+  ) |> 
+  select(
+    estimate, 
+    conf.low, 
+    conf.high
+  ) |> 
+  # see if population slope is in CI 
+  mutate(
+    cover = if_else(
+      (beta1 >= conf.low) & (beta1 <= conf.high),
+      1, 
+      0
+    )
+  )
+  
+}
+mycifun(beta0 = 1, beta1 = 2, n = 1000)
 
 ```
 
@@ -1394,7 +2606,7 @@ ca_childcare |>
 
 # LAB 2: Q17
 # ANOVA to compare species mean in rodent dataset
-aov(weight ~ species, data = surveys) |> summary()
+aov(weight ~ species, data = surveys) |> summary() 
 
 ```
 
@@ -1408,7 +2620,7 @@ aov(weight ~ species, data = surveys) |> summary()
 t.test(len ~ supp,
       data = ToothGrowth, 
       var.equal = FALSE, 
-      alternative = "two.sided")
+      alternative = "two.sided") 
 
 ```
 
@@ -1428,28 +2640,37 @@ chi_square_test <- chisq.test(
 
 ## Revising My Thinking
 
-Throughout this course, I consistently revised my work based on comments I received from peers and feedback I received on rubrics, focusing on writing cleaner and more efficient code each week.
+Throughout this quarter, I've made my best effort to take every revision opportunity. Any time a section of my lab or challenge was marked 'growing', I went back and revised the work— not just to resolve what was missing or had gone wrong, but to really understand why the issue mattered and how to avoid it in future code.
 
-Early on in the quarter, my main goal was making code "work" but through feedback and reflection, I began to understand that professional R programming is also about tidiness, reproduciblity, and readability. For instance, after receiving feedback on my Lab 4 submission, I revised my plots to use fct_reorder2() so that my legend automatically aligned with color order. Although my plot accurately displayed the data, this improvement was crucial for making my visualization clearer. Moreover, through applying this revision, I learned how to write adaptable code that won't break if data changes (as fct_reorder2() is automatic). Similarly, revising my YAML settings and chunk options to remove messages/ warnings helped me see that formatting choices can directly affect how a report reads. Iterating through feedback and revisions have also taught me to replace absolute file paths with here(), to ensure my projects render smoothly across computers, reinforcing reproducibility.
+Earlier in the quarter, my main focus was getting my code to "work". However, through feedback and reflection, I started to recognize that professional R code is also about designing code that is modular, tidy, and reproducible. In Lab 4, I revised one of my visualizations to use fct_reorder2(). Originally, this suggestion felt more cosmetic, however after making this revision, I realized that meaningfully ordered legends prevents data misinterpretations and helps to build a clearer visual narrative. This revision also taught me how programmatically implementing features using automatic functions prevents mistakes when data changes and is more reliable long term. In Lab 7, I replaced my absolute file path with the here() function. At first this seemed pointless, however after reflecting upon why this revision was required, I learned that a document should run on any machine without modification and that reproducibility starts with thoughtful project structure/ workflows— not just efficient, functional code. In this same lab, I was also encouraged to improve modularity. I rewrote my rescale_01() function to include input validation. Adding numeric checks and length checks helped me understand the importance of defensive programming— the practice of programming functions to be fail proof and clearly communicate when inputs are invalid. In Lab 8, I made revisions to my functions, pivot_table() and scatter_plot(). My revisions included rewriting label generation using Stringr functions to produce polished outputs that are readable. These revisions taught me to keep a reader's experience in mind when designing functions.
 
-Although these revisions seem to only address small issues, over the past weeks, I've noticed that each change encouraged me towards more thoughtful, modular, and sustainable coding practices that I've since applied in later labs/ challenges.
+Across all my revisions, I've learned to keep two things in mind when coding:
+
+1.  producing the intended output
+2.  aim for code that is readable, intentional, and resilient
+
+By revisiting my work, questioning my decisions, and asking myself why a revision is meaningful, I have developed habits that make my code clearer and my workflows more sustainable. These habits have allowed me to improve towards fewer– and even sometimes no– required revisions on my labs and challenges.
 
 ## Extending My Thinking
 
-For the past weeks, I've learned to extend my thinking by experimenting beyond what was explicitly required in the labs/ challenges. I began exploring new palettes like viridis and colorRampPalette() to make my plots more visually pleasing. When analyzing childcare costs, I experimented with pivot_longer() and fct_relevel() to make grouped comparison easier to interpret, deepening my understanding of how data structure and visualization interacts. Furthermore, working through Lab 5's relational joins, to identify the prime suspect in the crime report, stretched my thinking; I learned how to efficiently link multiple tables logically using chained inner_join()s and saw how relational data mirrors real world applications. Additionally, I often look up documentation for functions from lubridate and stringr to find ways to reduce redundant code and optimize efficiency in my pipelines. Now, halfway through the quarter, I've learned to to make deliberate choices to write cleaner, smarter, and more insightful analyses that showcase creativity and technical precision.
+During this quarter, I've learned to extend my thinking by experimenting beyond what was required in labs and challenges. Early in the quarter, I did this by playing with aesthetics and structure— trying viridis palettes, colorRampPalette(), and thoughtful implementing visual encodings that were not just 'correct' but also engaging and readable. In our lab where we analyzed childcare costs, I used functions like pivot_longer() and fct_relevel() to make grouped comparisons easier to interpret. Those design choices underscored how reshaping data and reordering factors enhances plot clarity. Later in the quarter, I continued to extend my thinking by focusing on what design choices led to the best practices in communicating data insights. In Lab 9, I used kable(), gt(), and kableExtra to create quality, aesthetically pretty, professional tables. Additionally, I played with tab_header(), tap_spanner(), fmt_percent(), custom fonts, and colors to emphasize key information. These formatting choices— like highlight row groups, centering headers, coloring missing values— taught me how I can guide a reader's attention in the right direction and make complex summaries easier to digest. In Lab 10, I reinforced these ideas to create tables and plots that intentionally illustrated coverage rates and distributions. I designed my coverage visualization with horizontal confidence interval segments, colored by whether they captured the true slope, to visually communicate the concept of 95% confidence. The process of designing this visual taught me how I can make abstract statistical concepts more intuitve.
+
+All in all, I've consistently pushed myself to explore new packages, aesthetics, and functional workflows throughout this quarter. Through doing so, my code and visuals show that I can design analyses that not only answer the given question but are also expressive.
 
 ## Peer Support & Collaboration
 
-Peer Review (Lab 4):
+Peer Review Example (Lab 7):
 
-"Hi Aidan!
-Amazing work on Lab 4! Overall, your code is very organized, readable, and well structured. I like that all your variables were clearly named-- it made following through your data transformations very easy.
-Here are a few suggestions that might help improve the tidiness and cleanliness of your code: \
-- Although your pipelines are pretty consistent, they could be even cleaner by adding spaces around all '=' operators and every line ends with either a '\|\>' or '+' operator. Keeping this in consideration will help distinguish plot layers. \
-- Another piece of advice I think you could benefit from is condensing related calculations within single function calls. I noticed that in a few of your code chunks, you used mutate() or summarise() multiple times in sequence. Condensing these steps into one call will help make your code more efficient and less redundant. \
-- This is only if you want to go above and beyond, but it would be super helpful if you added brief comments or md explanations describing longer code blocks, so readers can follow along easier. \
-All in all, your source code was very well written and your final rendering looks great! All lab requirements are met. With a few tweaks, your code is close to being perfect!"
+"Hi Garrett!\
+Great job with your Lab 7 submission! I really appreciate how consistent and readable your code is throughout this lab. I also LOVE the dark theme you applied to your rendered html-- it looks very cool. Your pipeline structure and use of tidyverse coding conventions make each data transformation easy to follow-- I especially like how you clearly named arguments and variables, really amazing job being consistent with snake_case naming. I also want to highlight how well you've applied whitespace and indentation: the alignment of operators (e.g \|\>, +) at the end of lines really helps readers mentally separate the stages of your analysis. One really well structured code chunk in your submission was your rescale_01() function-- very well spaced, efficient, and demonstrates thoughtful input validation.
+Here are a few areas where you could make your code more efficient:
+1. You create the object, rng, to store a range of fish lengths. However, you only use this object once to calculate the scaled bin width. Saving this object separately adds an unecessary object to the environment. Instead, you could compute the scaled_width in one line or even inline within your plot creation pipeline.
+2. You use the dollar sign operator in 'fish\$length' which is inconsistent with tidyverse practices. Instead, you could calculate the range of fish lengths using the summarise() function to maintain stylistic consistency.
+3. Last, super minor suggestion, would be to use range(rescaled, na.rm = TRUE) to test your rescale_01() function instead of separately computing min() and max(). This completes both min/ max checks in one function call to improve efficiency.
+Overall, amazing job with this lab! Hopefully these suggestions are helpful for future labs. Keep up the good work."
 
-One example of feedback I'm proud of was from my peer review on Aidan's Lab 4 submission. In my review, I balanced positive and suggestive feedback by complimenting his clear variable naming and organized structure and providing specific actionable advice to elevate the tidiness of his code. My suggestions were inspired by the tidyverse syntax standards and how my own understanding of clean and readable code had evolved throughout the course. Giving this feedback helped me recognize that I could clearly identify good coding practices in other people's work and articulate ways to improve efficiency. By reviewing and writing feedback, I've strengthened my own awareness as a collaborator and programmer.
+In the example of peer feedback I gave above, I emphasized encouragement and concrete, technically grounded suggestions. In my reviews, I always started by naming what was done well. In Garrett's case, I underscored his consistent snake_case naming, clear pipelines, and intentional use of whitespace and operator placement so each step in his analysis was easy to follow. I then onto more specific actionable ideas for suggestion. In Garrett's lab, I suggested that he avoid creating one off objects, recommended against using the dollar sign operator and instead advised using the summarize() function to stay consistent with tidyverse style, and pointed out ways in which he could write more efficient function calls. My peer feedback states clear ways he could improve his ability to code in R and align with tidyverse styling/ coding conventions.
 
-Furthermore, through weekly pair programming activities, I've also grown more confident working alongside classmates. I learned to balance offering help with listening carefully to my partner's thought process so we could debug/ brainstorm together effectively. I really enjoyed having defined roles (one talking through code/ typer)-- collaborating this way showed me how valuable peer exchange is.
+By both receiving and giving feedback throughout this quarter, my own understanding and comfortability to code in R had grown. Iterating through other people's code, gave me an opportunity to focus on things beyond whether the output was correct. Giving targeted suggestions forced to me articulate why certain patterns are better; reflection that looped back into my own coding— making sure I don't follow the same bad practices.
+
+Beyond peer reviews, I also grew a lot through our pair programming activities. During these activities, I learned how I can support my partner, asking them to talk through their logic, suggesting small refactors, etc. When I was the one talking through the activity, I practiced explaining my thought process and making space for my partner's ideas before jumping to a solution. When I was the programmer, I focused on listening to my partner, learning from them when I could, and double checking that both of us understood the material every step of the way. These weekly collaborations reminded me that clear communication and patience is key when working in pairs or groups.
